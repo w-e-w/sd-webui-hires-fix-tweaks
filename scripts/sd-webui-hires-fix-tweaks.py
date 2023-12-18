@@ -2,14 +2,36 @@ from modules import scripts, shared
 import gradio as gr
 import re
 
+# settings
 shared.options_templates.update(
     shared.options_section(
         ('hires_fix_tweaks', 'Hires. fix tweaks'),
         {
-                "hires_fix_tweaks_append_separator": shared.OptionInfo('{newline}', 'Append mode insert separator').info('default: {newline}'),
-                "hires_fix_tweaks_prepend_separator": shared.OptionInfo('{newline}', 'Prepend mode insert separator').info('default: {newline}'),
-                "hires_fix_tweaks_show_hr_cfg": shared.OptionInfo(True, 'Show hires Hires CFG Scale slider').needs_reload_ui(),
-                "hires_fix_tweaks_show_hr_prompt_mode": shared.OptionInfo(True, 'Show hires Hires prompt mode').info('only shows if "Hires fix: show hires prompt and negative prompt" is also enabled').needs_reload_ui(),
+            "hires_fix_tweaks_append_separator":
+                shared.OptionInfo(
+                    '{newline}',
+                    'Append mode insert separator'
+                )
+                .info('default: "{newline}"'),
+            "hires_fix_tweaks_prepend_separator":
+                shared.OptionInfo(
+                    '{newline}',
+                    'Prepend mode insert separator'
+                )
+                .info('default: "{newline}"'),
+            "hires_fix_tweaks_show_hr_cfg":
+                shared.OptionInfo(
+                    True,
+                    'Show hires Hires CFG Scale slider'
+                )
+                .needs_reload_ui(),
+            "hires_fix_tweaks_show_hr_prompt_mode":
+                shared.OptionInfo(
+                    True,
+                    'Show hires Hires prompt mode'
+                )
+                .info('only shows if "Hires fix: show hires prompt and negative prompt" is also enabled')
+                .needs_reload_ui(),
         }
     )
 )
@@ -31,18 +53,27 @@ def hires_prompt_mode_prepend(p):
     p.hr_negative_prompt = f'{p.hr_negative_prompt}{separator}{p.negative_prompt}'
 
 
+# search for all line starts with "{marker}"
 pattern = re.compile(r'^{([^}]+)}', flags=re.MULTILINE)
 
 
 def replace_prompt(prompt, hr_prompt):
+    # parse prompt for marker and replacement
+    # even index is marker, odd index is replacement
     replacements = pattern.split(hr_prompt)[1:]
     hr_prompt = prompt
     for i in range(0, len(replacements), 2):
-        if f'{{{replacements[i]}}}' in prompt:
-            prompt = prompt.replace(f'{{{replacements[i]}}}', '')
-            hr_prompt = hr_prompt.replace(f'{{{replacements[i]}}}', replacements[i + 1].strip())
+        insert_marker = f'{{{replacements[i]}}}'
+        if insert_marker in prompt:
+            # if insert_marker is found in prompt insert mode
+            # remove {insert_marker} from prompt
+            # replace {insert_marker} in hr_prompt with replacement
+            prompt = prompt.replace(insert_marker, '')
+            hr_prompt = hr_prompt.replace(insert_marker, replacements[i + 1].strip())
         else:
-            hr_prompt = hr_prompt.replace(f'{replacements[i]}', replacements[i + 1].strip())
+            # else replace mode
+            # replace insert_marker in hr_prompt with replacement
+            hr_prompt = hr_prompt.replace(replacements[i], replacements[i + 1].strip())
     return prompt, hr_prompt
 
 
@@ -64,7 +95,6 @@ class Script(scripts.Script):
         self.infotext_fields = []
         self.hr_cfg = None
         self.hr_prompt_mode = None
-
         self.first_pass_cfg_scale = None
 
     def title(self):
@@ -74,7 +104,7 @@ class Script(scripts.Script):
         if not is_img2img:
             self.on_after_component_elem_id = [
                 ('txt2img_hires_fix_row2', self.create_ui_cfg),
-                ('txt2img_hires_fix_row4', self.create_ui_prompt_mode),
+                ('txt2img_hires_fix_row4', self.create_ui_hr_prompt_mode),
             ]
             return scripts.AlwaysVisible
 
@@ -91,7 +121,7 @@ class Script(scripts.Script):
         )
         self.infotext_fields.append((self.hr_cfg, lambda d: d.get('Hires CFG scale', 0)))
 
-    def create_ui_prompt_mode(self, *args, **kwargs):
+    def create_ui_hr_prompt_mode(self, *args, **kwargs):
         self.hr_prompt_mode = gr.Radio(
             choices=list(hires_prompt_mode_functions),
             label='Hires prompt mode', value='Default',
@@ -102,16 +132,17 @@ class Script(scripts.Script):
 
     def ui(self, is_img2img):
         if None in [self.hr_cfg, self.hr_prompt_mode]:
-            with gr.Accordion(label=self.title()):
+            # pre 1.7.0 compatibility
+            with gr.Accordion(label=self.title(), open=False):
                 if self.hr_cfg is None:
                     self.create_ui_cfg()
                 if self.hr_prompt_mode is None:
-                    self.create_ui_prompt_mode()
+                    self.create_ui_hr_prompt_mode()
+
         return [self.hr_cfg, self.hr_prompt_mode]
 
     def setup(self, p, *args):
         hires_prompt_mode_functions.get(args[1], hires_prompt_mode_default)(p)
-        pass
 
     def before_hr(self, p, *args):
         self.first_pass_cfg_scale = p.cfg_scale
@@ -121,4 +152,3 @@ class Script(scripts.Script):
 
     def postprocess_batch(self, p, *args, **kwargs):
         p.cfg_scale = self.first_pass_cfg_scale
-        pass
