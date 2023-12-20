@@ -1,4 +1,4 @@
-from modules import scripts, shared
+from modules import scripts, shared, script_callbacks
 import gradio as gr
 import re
 
@@ -148,6 +148,7 @@ class Script(scripts.Script):
         self.hr_negative_prompt_mode = None
 
         self.first_pass_cfg_scale = None
+        self.apply_hr_cfg_scale = None
 
     def title(self):
         return "Hires. fix tweaks"
@@ -198,18 +199,38 @@ class Script(scripts.Script):
                     self.create_ui_cfg()
                 if self.hr_prompt_mode is None or self.hr_negative_prompt_mode is None:
                     self.create_ui_hr_prompt_mode()
+
         return [self.hr_cfg, self.hr_prompt_mode, self.hr_negative_prompt_mode]
 
     def setup(self, p, *args):
         p.prompt, p.hr_prompt = hires_prompt_mode_functions.get(args[1], hires_prompt_mode_default)(p.prompt, p.hr_prompt)
         p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_functions.get(args[2], hires_prompt_mode_default)(p.negative_prompt, p.hr_negative_prompt)
-        if args[0] != 0:
-            p.extra_generation_params['Hires CFG scale'] = args[0]
+        p.hr_cfg_scale = args[0]
+
+    def process_batch(self, p, *args, **kwargs):
+        self.first_pass_cfg_scale = p.cfg_scale
+        self.apply_hr_cfg_scale = p.hr_cfg_scale != 0 and p.hr_cfg_scale != self.first_pass_cfg_scale
+        if self.apply_hr_cfg_scale:
+            p.extra_generation_params['Hires CFG scale'] = p.hr_cfg_scale
+        else:
+            p.extra_generation_params.pop('Hires CFG scale', None)
 
     def before_hr(self, p, *args):
-        self.first_pass_cfg_scale = p.cfg_scale
-        if args[0] != 0:
-            p.cfg_scale = args[0]
+        if self.apply_hr_cfg_scale:
+            p.cfg_scale = p.hr_cfg_scale
 
     def postprocess_batch(self, p, *args, **kwargs):
-        p.cfg_scale = self.first_pass_cfg_scale
+        if self.apply_hr_cfg_scale:
+            p.cfg_scale = self.first_pass_cfg_scale
+
+
+def xyz_grid_axis():
+    for data in scripts.scripts_data:
+        if data.script_class.__module__ == 'xyz_grid.py' and hasattr(data, "module"):
+            xyz_grid = data.module
+            xyz_grid.axis_options.extend(
+                [xyz_grid.AxisOptionTxt2Img("Hires CFG Scale", float, xyz_grid.apply_field("hr_cfg_scale"))]
+            )
+
+
+script_callbacks.on_before_ui(xyz_grid_axis)
