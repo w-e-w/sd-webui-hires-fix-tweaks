@@ -1,6 +1,6 @@
 from modules import scripts, shared
 import gradio as gr
-import re
+import yaml
 
 # settings
 shared.options_templates.update(
@@ -37,49 +37,49 @@ shared.options_templates.update(
 )
 
 
-def hires_prompt_mode_default(p):
-    pass
-
-
-def hires_prompt_mode_append(p):
-    separator = shared.opts.hires_fix_tweaks_append_separator.format(newline='\n')
-    p.hr_prompt = f'{p.prompt}{separator}{p.hr_prompt}'
-    p.hr_negative_prompt = f'{p.negative_prompt}{separator}{p.hr_negative_prompt}'
-
-
-def hires_prompt_mode_prepend(p):
-    separator = shared.opts.hires_fix_tweaks_prepend_separator.format(newline='\n')
-    p.hr_prompt = f'{p.hr_prompt}{separator}{p.prompt}'
-    p.hr_negative_prompt = f'{p.hr_negative_prompt}{separator}{p.negative_prompt}'
-
-
-# search for all line starts with "{marker}"
-pattern = re.compile(r'^{([^}]+)}', flags=re.MULTILINE)
-
-
-def replace_prompt(prompt, hr_prompt):
-    # parse prompt for marker and replacement
-    # even index is marker, odd index is replacement
-    replacements = pattern.split(hr_prompt)[1:]
-    hr_prompt = prompt
-    for i in range(0, len(replacements), 2):
-        insert_marker = f'{{{replacements[i]}}}'
-        if insert_marker in prompt:
-            # if insert_marker is found in prompt insert mode
-            # remove {insert_marker} from prompt
-            # replace {insert_marker} in hr_prompt with replacement
-            prompt = prompt.replace(insert_marker, '')
-            hr_prompt = hr_prompt.replace(insert_marker, replacements[i + 1].strip())
-        else:
-            # else replace mode
-            # replace insert_marker in hr_prompt with replacement
-            hr_prompt = hr_prompt.replace(replacements[i], replacements[i + 1].strip())
+def hires_prompt_mode_default(prompt, hr_prompt):
     return prompt, hr_prompt
 
 
-def hires_prompt_mode_search_replace(p):
-    p.prompt, p.hr_prompt = replace_prompt(p.prompt, p.hr_prompt)
-    p.negative_prompt, p.hr_negative_prompt = replace_prompt(p.negative_prompt, p.hr_negative_prompt)
+def hires_prompt_mode_append(prompt, hr_prompt):
+    separator = shared.opts.hires_fix_tweaks_append_separator.format(newline='\n')
+    hr_prompt = f'{prompt}{separator}{hr_prompt}'
+    return prompt, hr_prompt
+
+
+def hires_prompt_mode_prepend(prompt, hr_prompt):
+    separator = shared.opts.hires_fix_tweaks_prepend_separator.format(newline='\n')
+    hr_prompt = f'{hr_prompt}{separator}{prompt}'
+    return prompt, hr_prompt
+
+
+# search for all line starts with "{marker}"
+# pattern = re.compile(r'^{([^}]+)}', flags=re.MULTILINE)
+
+
+def hires_prompt_mode_search_replace(prompt, hr_prompt):
+    prompt_copy, hr_prompt_copy = prompt, hr_prompt
+    try:
+        replacement_list = yaml.safe_load(hr_prompt)
+        for replacement in replacement_list:
+            search_list, replace = (replacement[:-1], replacement[-1]) if len(replacement) > 1 else (replacement, None)
+            if replace is None:
+                replace = ''
+            for search in search_list:
+                if search is None:
+                    continue
+                search_insert = f'{{{search}}}'
+                if search_insert in prompt:
+                    hr_prompt = prompt.replace(search_insert, replace)
+                    prompt = prompt.replace(search_insert, '')
+                else:
+                    hr_prompt = prompt.replace(search, replace)
+        return prompt, hr_prompt
+    except yaml.YAMLError as e:
+        print('yaml error:', e)
+    except Exception as e:
+        print(e)
+    return prompt_copy, hr_prompt_copy
 
 
 hires_prompt_mode_functions = {
@@ -95,6 +95,8 @@ class Script(scripts.Script):
         self.infotext_fields = []
         self.hr_cfg = None
         self.hr_prompt_mode = None
+        self.hr_negative_prompt_mode = None
+
         self.first_pass_cfg_scale = None
 
     def title(self):
@@ -122,13 +124,21 @@ class Script(scripts.Script):
         self.infotext_fields.append((self.hr_cfg, lambda d: d.get('Hires CFG scale', 0)))
 
     def create_ui_hr_prompt_mode(self, *args, **kwargs):
-        self.hr_prompt_mode = gr.Radio(
-            choices=list(hires_prompt_mode_functions),
-            label='Hires prompt mode', value='Default',
-            elem_id="hires_prompt_extend_mode",
-            visible=shared.opts.hires_fix_show_prompts and shared.opts.hires_fix_tweaks_show_hr_prompt_mode
-        )
-        self.infotext_fields.append((self.hr_prompt_mode, lambda d: 'Default'))
+        with gr.Row():
+            self.hr_prompt_mode = gr.Radio(
+                choices=list(hires_prompt_mode_functions),
+                label='Hires prompt mode', value='Default',
+                elem_id="hires_prompt_extend_mode",
+                visible=shared.opts.hires_fix_show_prompts and shared.opts.hires_fix_tweaks_show_hr_prompt_mode
+            )
+            self.hr_negative_prompt_mode = gr.Radio(
+                choices=list(hires_prompt_mode_functions),
+                label='Hires negative prompt mode', value='Default',
+                elem_id="hires_negative_prompt_extend_mode",
+                visible=shared.opts.hires_fix_show_prompts and shared.opts.hires_fix_tweaks_show_hr_prompt_mode
+            )
+            self.infotext_fields.append((self.hr_prompt_mode, lambda d: 'Default'))
+            self.infotext_fields.append((self.hr_negative_prompt_mode, lambda d: 'Default'))
 
     def ui(self, is_img2img):
         if None in [self.hr_cfg, self.hr_prompt_mode]:
@@ -136,13 +146,13 @@ class Script(scripts.Script):
             with gr.Accordion(label=self.title(), open=False):
                 if self.hr_cfg is None:
                     self.create_ui_cfg()
-                if self.hr_prompt_mode is None:
+                if self.hr_prompt_mode is None or self.hr_negative_prompt_mode is None:
                     self.create_ui_hr_prompt_mode()
-
-        return [self.hr_cfg, self.hr_prompt_mode]
+        return [self.hr_cfg, self.hr_prompt_mode, self.hr_negative_prompt_mode]
 
     def setup(self, p, *args):
-        hires_prompt_mode_functions.get(args[1], hires_prompt_mode_default)(p)
+        p.prompt, p.hr_prompt = hires_prompt_mode_functions.get(args[1], hires_prompt_mode_default)(p.prompt, p.hr_prompt)
+        p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_functions.get(args[2], hires_prompt_mode_default)(p.negative_prompt, p.hr_negative_prompt)
 
     def before_hr(self, p, *args):
         self.first_pass_cfg_scale = p.cfg_scale
