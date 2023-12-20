@@ -3,14 +3,17 @@ import gradio as gr
 import re
 
 
+invalid_marker_character_message = r'''ERROR: invalid marker character
+marker character must be a single uncommon character
+defaulting to "@"'''
+
+
 def setup_regex():
     global marker_char, search_replace_instructions_pattern
     if len(shared.opts.hires_fix_tweaks_marker_char) != 1 or re.match(r'[\s\w]', shared.opts.hires_fix_tweaks_marker_char):
-        print(r'''ERROR: invalid marker character
-marker character must be a single character
-and must be a not be a common character [\s\w]
-defaulting to "@"''')
         shared.opts.hires_fix_tweaks_marker_char = '@'
+        print(invalid_marker_character_message)
+        gr.Warning(invalid_marker_character_message)
     marker_char = shared.opts.hires_fix_tweaks_marker_char
     marker_char_escape = re.escape(shared.opts.hires_fix_tweaks_marker_char)
     # search for all line starts with "@marker@", @@ for escaped @
@@ -19,48 +22,6 @@ defaulting to "@"''')
         f'^{marker_char_escape}((?:[^{marker_char_escape}]|{marker_char_escape * 2})+){marker_char_escape}',
         flags=re.MULTILINE,
     )
-
-
-# settings
-shared.options_templates.update(
-    shared.options_section(
-        ('hires_fix_tweaks', 'Hires. fix tweaks'),
-        {
-            "hires_fix_tweaks_append_separator":
-                shared.OptionInfo(
-                    '{newline}',
-                    'Append mode insert separator',
-                )
-                .info('default: "{newline}"'),
-            "hires_fix_tweaks_prepend_separator":
-                shared.OptionInfo(
-                    '{newline}',
-                    'Prepend mode insert separator',
-                )
-                .info('default: "{newline}"'),
-            "hires_fix_tweaks_show_hr_cfg":
-                shared.OptionInfo(
-                    True,
-                    'Show hires Hires CFG Scale slider',
-                )
-                .needs_reload_ui(),
-            "hires_fix_tweaks_show_hr_prompt_mode":
-                shared.OptionInfo(
-                    True,
-                    'Show hires Hires prompt mode',
-                )
-                .info('only shows if "Hires fix: show hires prompt and negative prompt" is also enabled')
-                .needs_reload_ui(),
-            "hires_fix_tweaks_marker_char":
-                shared.OptionInfo(
-                    '@',
-                    'Hires fix search/replace marker character',
-                    onchange=setup_regex,
-                )
-                .info('default: "@", must be a single character, this can breaking things, only change if you know what you\'re doing'),
-        }
-    )
-)
 
 
 def hires_prompt_mode_default(prompt, hr_prompt):
@@ -82,7 +43,7 @@ def hires_prompt_mode_prepend(prompt, hr_prompt):
 
 
 # search leading and trailing newlines
-remove_1_leading_and_trailing_newline_pattern = re.compile(r'^\r?\n?([\W\w]+)\r?\n?$')
+one_leading_and_trailing_newline_pattern = re.compile(r'^\r?\n?([\W\w]+)\r?\n?$')
 search_replace_instructions_pattern: re.Pattern
 marker_char: str
 setup_regex()
@@ -119,7 +80,7 @@ def hires_prompt_mode_search_replace(prompt, hr_prompt):
 
         # restore escaped @ and remove 1 leading and trailing newline
         replace = search_replace_instructions_list[i + 1].replace(marker_char * 2, marker_char)
-        replace = remove_1_leading_and_trailing_newline_pattern.search(replace).group(1)
+        replace = one_leading_and_trailing_newline_pattern.search(replace).group(1)
 
         if insert_key in prompt:
             # insert mode: remove @key@ from prompt and replace @key@ in hr_prompt with replacement
@@ -140,6 +101,7 @@ hires_prompt_mode_functions = {
 }
 
 
+# Extension
 class Script(scripts.Script):
     def __init__(self):
         self.infotext_fields = []
@@ -224,13 +186,59 @@ class Script(scripts.Script):
             p.cfg_scale = self.first_pass_cfg_scale
 
 
+# XYZ grid support
 def xyz_grid_axis():
     for data in scripts.scripts_data:
         if data.script_class.__module__ == 'xyz_grid.py' and hasattr(data, "module"):
             xyz_grid = data.module
             xyz_grid.axis_options.extend(
-                [xyz_grid.AxisOptionTxt2Img("Hires CFG Scale", float, xyz_grid.apply_field("hr_cfg_scale"))]
+                [
+                    xyz_grid.AxisOptionTxt2Img("Hires CFG Scale", float, xyz_grid.apply_field("hr_cfg_scale")),
+                ]
             )
+            break
 
 
 script_callbacks.on_before_ui(xyz_grid_axis)
+
+
+# settings
+shared.options_templates.update(
+    shared.options_section(
+        ('hires_fix_tweaks', 'Hires. fix tweaks'),
+        {
+            "hires_fix_tweaks_append_separator":
+                shared.OptionInfo(
+                    '{newline}',
+                    'Append mode insert separator',
+                )
+                .info('default: "{newline}"'),
+            "hires_fix_tweaks_prepend_separator":
+                shared.OptionInfo(
+                    '{newline}',
+                    'Prepend mode insert separator',
+                )
+                .info('default: "{newline}"'),
+            "hires_fix_tweaks_show_hr_cfg":
+                shared.OptionInfo(
+                    True,
+                    'Show hires Hires CFG Scale slider',
+                )
+                .needs_reload_ui(),
+            "hires_fix_tweaks_show_hr_prompt_mode":
+                shared.OptionInfo(
+                    True,
+                    'Show hires Hires prompt mode',
+                )
+                .info('only shows if "Hires fix: show hires prompt and negative prompt" is also enabled')
+                .needs_reload_ui(),
+            "hires_fix_tweaks_marker_char":
+                shared.OptionInfo(
+                    '@',
+                    'Hires fix search/replace marker character',
+                    onchange=setup_regex,
+                )
+                .info('default: "@", must be a single character, this can breaking things, only change if you know what you\'re doing'),
+        }
+    )
+)
