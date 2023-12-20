@@ -1,6 +1,7 @@
 from modules import scripts, shared
 import gradio as gr
-import yaml
+import re
+# import yaml
 
 # settings
 shared.options_templates.update(
@@ -42,44 +43,69 @@ def hires_prompt_mode_default(prompt, hr_prompt):
 
 
 def hires_prompt_mode_append(prompt, hr_prompt):
-    separator = shared.opts.hires_fix_tweaks_append_separator.format(newline='\n')
-    hr_prompt = f'{prompt}{separator}{hr_prompt}'
+    if hr_prompt.strip():
+        separator = shared.opts.hires_fix_tweaks_append_separator.format(newline='\n')
+        hr_prompt = f'{prompt}{separator}{hr_prompt}'
     return prompt, hr_prompt
 
 
 def hires_prompt_mode_prepend(prompt, hr_prompt):
-    separator = shared.opts.hires_fix_tweaks_prepend_separator.format(newline='\n')
-    hr_prompt = f'{hr_prompt}{separator}{prompt}'
+    if hr_prompt.strip():
+        separator = shared.opts.hires_fix_tweaks_prepend_separator.format(newline='\n')
+        hr_prompt = f'{hr_prompt}{separator}{prompt}'
     return prompt, hr_prompt
 
 
-# search for all line starts with "{marker}"
-# pattern = re.compile(r'^{([^}]+)}', flags=re.MULTILINE)
+# search for all line starts with "@marker@", @@ for escaped @
+search_replace_instructions_pattern = re.compile(r'^@((?:[^@]|@@)*)@', flags=re.MULTILINE)
+# search leading and trailing newlines
+remove_1_leading_space_pattern = re.compile(r'^\r?\n?([\W\w]+)\r?\n?$')
+# search for escaped @
+restore_escaped_at_replace_pattern = re.compile(r'^@@', flags=re.MULTILINE)
 
 
 def hires_prompt_mode_search_replace(prompt, hr_prompt):
-    prompt_copy, hr_prompt_copy = prompt, hr_prompt
-    try:
-        replacement_list = yaml.safe_load(hr_prompt)
-        for replacement in replacement_list:
-            search_list, replace = (replacement[:-1], replacement[-1]) if len(replacement) > 1 else (replacement, None)
-            if replace is None:
-                replace = ''
-            for search in search_list:
-                if search is None:
-                    continue
-                search_insert = f'{{{search}}}'
-                if search_insert in prompt:
-                    hr_prompt = prompt.replace(search_insert, replace)
-                    prompt = prompt.replace(search_insert, '')
-                else:
-                    hr_prompt = prompt.replace(search, replace)
-        return prompt, hr_prompt
-    except yaml.YAMLError as e:
-        print('yaml error:', e)
-    except Exception as e:
-        print(e)
-    return prompt_copy, hr_prompt_copy
+    """
+    parse hr_prompt as instructions for search and replace in prompt
+
+    instructions syntax: @search@ replace
+    each pare starts with a search value which is denoted by a newline starting with "@key@"
+    anything after the search value is the replacement until the next search value
+    both search and replace values are can be multi-line
+    if search value requires a literal "@" in the prompt, escape it with "@@"
+    if replacement value requires a literal @ at the beginning of a new line, escape it with @@
+
+    if "@search@" value is found in prompt, then it performs an "insert"
+    whitespace is removed "@search@" from prompt and replace "@search@" in hr_prompt with replace value
+    otherwise if @search@ value is not found in prompt, then it performs a "replace"
+    replace search in hr_prompt with replace value, the prompt is not modified
+    """
+
+    search_replace_list = search_replace_instructions_pattern.split(hr_prompt)[1:]
+
+    hr_prompt = prompt
+    for i in range(0, len(search_replace_list), 2):
+        # restore escaped }
+        key = search_replace_list[i].replace('@@', '@')
+        insert_key = f'@{key}@'
+
+        replace = restore_escaped_at_replace_pattern.sub('@', search_replace_list[i + 1])
+        replace = remove_1_leading_space_pattern.search(replace).group(1)
+
+        if insert_key in prompt:
+            # insert mode: remove @key@ from prompt and replace @key@ in hr_prompt with replacement
+            prompt = prompt.replace(insert_key, '')
+            hr_prompt = hr_prompt.replace(insert_key, replace)
+        else:
+            # replace mode: replace insert_marker in hr_prompt with replacement
+            hr_prompt = hr_prompt.replace(key, replace)
+
+    # todo remove debug
+    print(prompt)
+    print('-' * 80)
+    print(hr_prompt)
+    print('=' * 80)
+    return prompt, hr_prompt
 
 
 hires_prompt_mode_functions = {
