@@ -1,7 +1,25 @@
 from modules import scripts, shared
 import gradio as gr
 import re
-# import yaml
+
+
+def setup_regex():
+    global marker_char, search_replace_instructions_pattern
+    if len(shared.opts.hires_fix_tweaks_marker_char) != 1 or re.match(r'[\s\w]', shared.opts.hires_fix_tweaks_marker_char):
+        print(r'''ERROR: invalid marker character
+marker character must be a single character
+and must be a not be a common character [\s\w]
+defaulting to "@"''')
+        shared.opts.hires_fix_tweaks_marker_char = '@'
+    marker_char = shared.opts.hires_fix_tweaks_marker_char
+    marker_char_escape = re.escape(shared.opts.hires_fix_tweaks_marker_char)
+    # search for all line starts with "@marker@", @@ for escaped @
+    search_replace_instructions_pattern = re.compile(
+        # r'^@((?:[^@]|@@)+)@'
+        f'^{marker_char_escape}((?:[^{marker_char_escape}]|{marker_char_escape * 2})+){marker_char_escape}',
+        flags=re.MULTILINE,
+    )
+
 
 # settings
 shared.options_templates.update(
@@ -11,28 +29,35 @@ shared.options_templates.update(
             "hires_fix_tweaks_append_separator":
                 shared.OptionInfo(
                     '{newline}',
-                    'Append mode insert separator'
+                    'Append mode insert separator',
                 )
                 .info('default: "{newline}"'),
             "hires_fix_tweaks_prepend_separator":
                 shared.OptionInfo(
                     '{newline}',
-                    'Prepend mode insert separator'
+                    'Prepend mode insert separator',
                 )
                 .info('default: "{newline}"'),
             "hires_fix_tweaks_show_hr_cfg":
                 shared.OptionInfo(
                     True,
-                    'Show hires Hires CFG Scale slider'
+                    'Show hires Hires CFG Scale slider',
                 )
                 .needs_reload_ui(),
             "hires_fix_tweaks_show_hr_prompt_mode":
                 shared.OptionInfo(
                     True,
-                    'Show hires Hires prompt mode'
+                    'Show hires Hires prompt mode',
                 )
                 .info('only shows if "Hires fix: show hires prompt and negative prompt" is also enabled')
                 .needs_reload_ui(),
+            "hires_fix_tweaks_marker_char":
+                shared.OptionInfo(
+                    '@',
+                    'Hires fix search/replace marker character',
+                    onchange=setup_regex,
+                )
+                .info('default: "@", must be a single character, this can breaking things, only change if you know what you\'re doing'),
         }
     )
 )
@@ -56,12 +81,11 @@ def hires_prompt_mode_prepend(prompt, hr_prompt):
     return prompt, hr_prompt
 
 
-# search for all line starts with "@marker@", @@ for escaped @
-search_replace_instructions_pattern = re.compile(r'^@((?:[^@]|@@)*)@', flags=re.MULTILINE)
 # search leading and trailing newlines
-remove_1_leading_space_pattern = re.compile(r'^\r?\n?([\W\w]+)\r?\n?$')
-# search for escaped @
-restore_escaped_at_replace_pattern = re.compile(r'^@@', flags=re.MULTILINE)
+remove_1_leading_and_trailing_newline_pattern = re.compile(r'^\r?\n?([\W\w]+)\r?\n?$')
+search_replace_instructions_pattern: re.Pattern
+marker_char: str
+setup_regex()
 
 
 def hires_prompt_mode_search_replace(prompt, hr_prompt):
@@ -72,25 +96,30 @@ def hires_prompt_mode_search_replace(prompt, hr_prompt):
     each pare starts with a search value which is denoted by a newline starting with "@key@"
     anything after the search value is the replacement until the next search value
     both search and replace values are can be multi-line
-    if search value requires a literal "@" in the prompt, escape it with "@@"
-    if replacement value requires a literal @ at the beginning of a new line, escape it with @@
+    if search or replace value requires a literal "@" in the prompt, escape it with "@@"
 
+    the instructions are parsed form hr_prompt then hr_prompt is replaced with the contents of prompt
+    then based on the instructions hr_prompt is modified
     if "@search@" value is found in prompt, then it performs an "insert"
-    whitespace is removed "@search@" from prompt and replace "@search@" in hr_prompt with replace value
-    otherwise if @search@ value is not found in prompt, then it performs a "replace"
-    replace search in hr_prompt with replace value, the prompt is not modified
+        in hr_prompt search for "@search@" and replace with "replace" value
+        in prompt remove "@search@"
+    otherwise if performs a "replace"
+        in hr_prompt search for "search" (not "@search@") and replace with "replace" value
+        prompt is not modified
     """
-
-    search_replace_list = search_replace_instructions_pattern.split(hr_prompt)[1:]
+    # parse hr_prompt as instructions for search and replace
+    # even indexes are search value, odd indexes are replace value
+    search_replace_instructions_list = search_replace_instructions_pattern.split(hr_prompt)[1:]
 
     hr_prompt = prompt
-    for i in range(0, len(search_replace_list), 2):
-        # restore escaped }
-        key = search_replace_list[i].replace('@@', '@')
-        insert_key = f'@{key}@'
+    for i in range(0, len(search_replace_instructions_list), 2):
+        # restore escaped @
+        key = search_replace_instructions_list[i].replace(marker_char * 2, marker_char)
+        insert_key = f'{marker_char}{key}{marker_char}'
 
-        replace = restore_escaped_at_replace_pattern.sub('@', search_replace_list[i + 1])
-        replace = remove_1_leading_space_pattern.search(replace).group(1)
+        # restore escaped @ and remove 1 leading and trailing newline
+        replace = search_replace_instructions_list[i + 1].replace(marker_char * 2, marker_char)
+        replace = remove_1_leading_and_trailing_newline_pattern.search(replace).group(1)
 
         if insert_key in prompt:
             # insert mode: remove @key@ from prompt and replace @key@ in hr_prompt with replacement
@@ -100,11 +129,6 @@ def hires_prompt_mode_search_replace(prompt, hr_prompt):
             # replace mode: replace insert_marker in hr_prompt with replacement
             hr_prompt = hr_prompt.replace(key, replace)
 
-    # todo remove debug
-    print(prompt)
-    print('-' * 80)
-    print(hr_prompt)
-    print('=' * 80)
     return prompt, hr_prompt
 
 
