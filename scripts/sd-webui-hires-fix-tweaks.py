@@ -203,12 +203,13 @@ class Script(scripts.Script):
     def setup(self, p, *args):
         p.prompt, p.hr_prompt = hires_prompt_mode_functions.get(args[1], hires_prompt_mode_default)(p.prompt, p.hr_prompt)
         p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_functions.get(args[2], hires_prompt_mode_default)(p.negative_prompt, p.hr_negative_prompt)
+        if args[0] != 0:
+            p.extra_generation_params['Hires CFG scale'] = args[0]
 
     def before_hr(self, p, *args):
         self.first_pass_cfg_scale = p.cfg_scale
         if args[0] != 0:
             p.cfg_scale = args[0]
-            p.extra_generation_params['Hires CFG scale'] = p.cfg_scale
 
     def postprocess_batch(self, p, *args, **kwargs):
         p.cfg_scale = self.first_pass_cfg_scale
