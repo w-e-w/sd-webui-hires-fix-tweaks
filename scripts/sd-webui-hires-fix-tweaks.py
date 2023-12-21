@@ -113,7 +113,7 @@ class Script(scripts.Script):
         self.apply_hr_cfg_scale = None
 
     def title(self):
-        return "Hires. fix tweaks"
+        return 'Hires. fix tweaks'
 
     def show(self, is_img2img):
         if not is_img2img:
@@ -130,8 +130,8 @@ class Script(scripts.Script):
             maximum=30.0,
             step=0.5,
             label='Hires CFG Scale',
-            elem_id="hires_fix_tweaks_txt2img_cfg_scale",
-            tooltip="0: same as first pass",
+            elem_id='hires_fix_tweaks_txt2img_cfg_scale',
+            tooltip='0: same as first pass',
             visible=shared.opts.hires_fix_tweaks_show_hr_cfg
         )
         self.infotext_fields.append((self.hr_cfg, lambda d: d.get('Hires CFG scale', 0)))
@@ -141,13 +141,13 @@ class Script(scripts.Script):
             self.hr_prompt_mode = gr.Radio(
                 choices=list(hires_prompt_mode_functions),
                 label='Hires prompt mode', value='Default',
-                elem_id="hires_prompt_extend_mode",
+                elem_id='hires_prompt_extend_mode',
                 visible=shared.opts.hires_fix_show_prompts and shared.opts.hires_fix_tweaks_show_hr_prompt_mode
             )
             self.hr_negative_prompt_mode = gr.Radio(
                 choices=list(hires_prompt_mode_functions),
                 label='Hires negative prompt mode', value='Default',
-                elem_id="hires_negative_prompt_extend_mode",
+                elem_id='hires_negative_prompt_extend_mode',
                 visible=shared.opts.hires_fix_show_prompts and shared.opts.hires_fix_tweaks_show_hr_prompt_mode
             )
             self.infotext_fields.append((self.hr_prompt_mode, lambda d: 'Default'))
@@ -189,11 +189,11 @@ class Script(scripts.Script):
 # XYZ grid support
 def xyz_grid_axis():
     for data in scripts.scripts_data:
-        if data.script_class.__module__ == 'xyz_grid.py' and hasattr(data, "module"):
+        if data.script_class.__module__ == 'xyz_grid.py' and hasattr(data, 'module'):
             xyz_grid = data.module
             xyz_grid.axis_options.extend(
                 [
-                    xyz_grid.AxisOptionTxt2Img("Hires CFG Scale", float, xyz_grid.apply_field("hr_cfg_scale")),
+                    xyz_grid.AxisOptionTxt2Img('Hires CFG Scale', float, xyz_grid.apply_field('hr_cfg_scale')),
                 ]
             )
             break
@@ -207,32 +207,32 @@ shared.options_templates.update(
     shared.options_section(
         ('hires_fix_tweaks', 'Hires. fix tweaks'),
         {
-            "hires_fix_tweaks_append_separator":
+            'hires_fix_tweaks_append_separator':
                 shared.OptionInfo(
                     '{newline}',
                     'Append mode insert separator',
                 )
                 .info('default: "{newline}"'),
-            "hires_fix_tweaks_prepend_separator":
+            'hires_fix_tweaks_prepend_separator':
                 shared.OptionInfo(
                     '{newline}',
                     'Prepend mode insert separator',
                 )
                 .info('default: "{newline}"'),
-            "hires_fix_tweaks_show_hr_cfg":
+            'hires_fix_tweaks_show_hr_cfg':
                 shared.OptionInfo(
                     True,
                     'Show hires Hires CFG Scale slider',
                 )
                 .needs_reload_ui(),
-            "hires_fix_tweaks_show_hr_prompt_mode":
+            'hires_fix_tweaks_show_hr_prompt_mode':
                 shared.OptionInfo(
                     True,
                     'Show hires Hires prompt mode',
                 )
                 .info('only shows if "Hires fix: show hires prompt and negative prompt" is also enabled')
                 .needs_reload_ui(),
-            "hires_fix_tweaks_marker_char":
+            'hires_fix_tweaks_marker_char':
                 shared.OptionInfo(
                     '@',
                     'Hires fix search/replace marker character',
