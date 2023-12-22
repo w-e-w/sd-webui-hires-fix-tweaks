@@ -137,14 +137,15 @@ class Script(scripts.Script):
         self.infotext_fields.append((self.hr_cfg, lambda d: d.get('Hires CFG scale', 0)))
 
     def create_ui_hr_prompt_mode(self, *args, **kwargs):
+        gr_ui_element = getattr(gr, shared.opts.hires_fix_tweaks_hires_prompt_mode_ui_type, gr.Radio)
         with gr.Row():
-            self.hr_prompt_mode = gr.Radio(
+            self.hr_prompt_mode = gr_ui_element(
                 choices=list(hires_prompt_mode_functions),
                 label='Hires prompt mode', value='Default',
                 elem_id='hires_prompt_extend_mode',
                 visible=shared.opts.hires_fix_show_prompts and shared.opts.hires_fix_tweaks_show_hr_prompt_mode
             )
-            self.hr_negative_prompt_mode = gr.Radio(
+            self.hr_negative_prompt_mode = gr_ui_element(
                 choices=list(hires_prompt_mode_functions),
                 label='Hires negative prompt mode', value='Default',
                 elem_id='hires_negative_prompt_extend_mode',
@@ -159,7 +160,7 @@ class Script(scripts.Script):
             with gr.Accordion(label=self.title(), open=False):
                 if self.hr_cfg is None:
                     self.create_ui_cfg()
-                if self.hr_prompt_mode is None or self.hr_negative_prompt_mode is None:
+                if self.hr_prompt_modeis None or self.hr_negative_prompt_mode is None:
                     self.create_ui_hr_prompt_mode()
 
         return [self.hr_cfg, self.hr_prompt_mode, self.hr_negative_prompt_mode]
@@ -235,10 +236,18 @@ shared.options_templates.update(
             'hires_fix_tweaks_marker_char':
                 shared.OptionInfo(
                     '@',
-                    'Hires fix search/replace marker character',
+                    'Hires fix search/replace syntax '
+                    'marker character',
                     onchange=setup_regex,
                 )
-                .info('default: "@", must be a single character, this can breaking things, only change if you know what you\'re doing'),
+                .info('default: "@", can be changed other characters if the default is causing issues, must be a single uncommon character'),
+            'hires_fix_tweaks_hires_prompt_mode_ui_type':
+                shared.OptionInfo(
+                    'Radio', 'text', gr.Radio,
+                    {'choices': ['Radio', 'Dropdown']},
+                )
+                .needs_reload_ui()
+
         }
     )
 )
