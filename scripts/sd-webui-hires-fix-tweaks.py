@@ -43,7 +43,7 @@ def hires_prompt_mode_prepend(prompt, hr_prompt):
 
 
 # search leading and trailing newlines
-one_leading_and_trailing_newline_pattern = re.compile(r'^\r?\n?([\W\w]+)\r?\n?$')
+one_leading_and_trailing_newline_pattern = re.compile(r'^\r?\n?([\W\w]*)\r?\n?$')
 search_replace_instructions_pattern: re.Pattern
 marker_char: str
 setup_regex()
@@ -104,6 +104,7 @@ hires_prompt_mode_functions = {
 # Extension
 class Script(scripts.Script):
     def __init__(self):
+        super().__init__()
         self.infotext_fields = []
         self.hr_cfg = None
         self.hr_prompt_mode = None
@@ -160,7 +161,7 @@ class Script(scripts.Script):
             with gr.Accordion(label=self.title(), open=False):
                 if self.hr_cfg is None:
                     self.create_ui_cfg()
-                if self.hr_prompt_modeis None or self.hr_negative_prompt_mode is None:
+                if self.hr_prompt_mode is None or self.hr_negative_prompt_mode is None:
                     self.create_ui_hr_prompt_mode()
 
         return [self.hr_cfg, self.hr_prompt_mode, self.hr_negative_prompt_mode]
