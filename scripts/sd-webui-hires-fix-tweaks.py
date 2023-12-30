@@ -24,24 +24,24 @@ class Script(scripts.Script):
         return self.ui_class.ui_args()
 
     def setup(self, p, *args):
-        hr_prompt_mode.setup(self, p, *args)
+        hr_prompt_mode.setup(p, *args)
         self.hires_cfg_scale.setup(p, *args)
 
     def process(self, p, *args):
-        self.hires_batch_seed.process(self, p, *args)
+        self.hires_batch_seed.process(p, *args)
 
     def before_process(self, p, *args):
         pass
 
     def process_batch(self, p, *args, **kwargs):
         self.hires_cfg_scale.process_batch(p, *args, **kwargs)
-        self.hires_batch_seed.process_batch(self, p, *args, **kwargs)
+        self.hires_batch_seed.process_batch(p, *args, **kwargs)
 
     def before_hr(self, p, *args):
         self.hires_cfg_scale.before_hr(p)
 
     def postprocess_batch_list(self, p, pp, *args, **kwargs):
-        self.hires_batch_seed.postprocess_batch_list(self, p, pp, *args, **kwargs)
+        self.hires_batch_seed.postprocess_batch_list(p, pp, *args, **kwargs)
 
     def postprocess_batch(self, p, *args, **kwargs):
         self.hires_cfg_scale.postprocess_batch(p)

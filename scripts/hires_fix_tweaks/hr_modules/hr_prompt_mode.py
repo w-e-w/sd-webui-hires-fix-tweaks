@@ -99,6 +99,6 @@ hires_prompt_mode_functions = {
 }
 
 
-def setup(self, p, *args):
+def setup(p, *args):
     p.prompt, p.hr_prompt = hires_prompt_mode_functions.get(args[1], hires_prompt_mode_default)(p.prompt, p.hr_prompt)
     p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_functions.get(args[2],hires_prompt_mode_default)(p.negative_prompt, p.hr_negative_prompt)

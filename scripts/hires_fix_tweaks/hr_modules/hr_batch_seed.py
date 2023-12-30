@@ -1,8 +1,7 @@
-import inspect
-import random
-
 from modules import errors, patches, processing, shared
 from html.parser import HTMLParser
+import inspect
+import random
 
 
 class SimpleHTMLParser(HTMLParser):
