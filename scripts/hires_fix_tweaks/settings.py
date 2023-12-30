@@ -50,3 +50,5 @@ shared.options_templates.update(
         }
     )
 )
+
+hr_prompt_mode.setup_regex()

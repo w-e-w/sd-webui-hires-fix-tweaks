@@ -44,7 +44,6 @@ def hires_prompt_mode_prepend(prompt, hr_prompt):
 one_leading_and_trailing_newline_pattern = re.compile(r'^\r?\n?([\W\w]*)\r?\n?$')
 search_replace_instructions_pattern: re.Pattern
 marker_char: str
-setup_regex()
 
 
 def hires_prompt_mode_search_replace(prompt, hr_prompt):

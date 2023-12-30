@@ -1,5 +1,5 @@
 from scripts.hires_fix_tweaks.hr_modules import hr_cfg_scale, hr_prompt_mode, hr_batch_seed
-from scripts.hires_fix_tweaks import ui, xyz  # noqa: F401
+from scripts.hires_fix_tweaks import ui, xyz, settings  # noqa: F401
 from modules import scripts
 
 
