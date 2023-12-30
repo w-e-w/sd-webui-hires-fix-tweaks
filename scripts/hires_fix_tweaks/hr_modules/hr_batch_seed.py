@@ -186,11 +186,8 @@ class HiresBatchSeed:
     def process(self, p, *args):
         # seed init
         self.hr_batch_count = args[3]  # multi hr seed
-
         self.enable_hr_seed = args[4]
-
         if self.enable_hr_seed:
-
             self.hr_seed = args[5]
             self.hr_seed_enable_extras = args[6]
             if self.hr_seed_enable_extras:
@@ -214,21 +211,12 @@ class HiresBatchSeed:
             self.hr_seed_resize_from_w = p.seed_resize_from_w
             self.hr_seed_resize_from_h = p.seed_resize_from_h
 
-        # print(p.all_prompts)
-        # p.sample_hr_pass = self.sample_hr_pass_hijack(p, p.sample_hr_pass)
-        p.sample_hr_pass = sample_hr_pass_hijack(self, p, p.sample_hr_pass)
-
-        # p.sample = self.sample_hijack(p, p.sample)
-        p.sample = sample_hijack(p, p.sample)
-        # p.js = self.js_hijack(p.js)
-
-        # init hr seeds
         init_hr_seeds(self, p)
 
-    def process_batch(self, p, *args, **kwargs):
-        # p.extra_generation_params
+        p.sample_hr_pass = sample_hr_pass_hijack(self, p, p.sample_hr_pass)
+        p.sample = sample_hijack(p, p.sample)
 
-        # if p.enable_hr and getattr(p, 'force_write_hr_info_flag', False):
+    def process_batch(self, p, *args, **kwargs):
         if p.enable_hr:
             p.hr_seeds = self.all_hr_seeds
             p.hr_subseeds = self.all_hr_subseeds
@@ -245,3 +233,6 @@ class HiresBatchSeed:
     def postprocess(self, p, processed, *args):
         processed.all_seeds = [j for i in range(0, len(processed.all_seeds), processed.batch_size) for j in processed.all_seeds[i:i + processed.batch_size] * self.hr_batch_count]
         processed.all_subseeds = [j for i in range(0, len(processed.all_subseeds), processed.batch_size) for j in processed.all_subseeds[i:i + processed.batch_size] * self.hr_batch_count]
+
+# todo fix subseed
+# todo fix progress bar
