@@ -2,15 +2,14 @@ from modules import shared
 import gradio as gr
 import re
 
-invalid_marker_character_message = r'''ERROR: invalid marker character
-marker character must be a single uncommon character
-defaulting to "@"'''
-
 
 def setup_regex():
     global marker_char, search_replace_instructions_pattern
     if len(shared.opts.hires_fix_tweaks_marker_char) != 1 or re.match(r'[\s\w]', shared.opts.hires_fix_tweaks_marker_char):
         shared.opts.hires_fix_tweaks_marker_char = '@'
+        invalid_marker_character_message = r'''ERROR: invalid marker character
+        marker character must be a single uncommon character
+        defaulting to "@"'''
         print(invalid_marker_character_message)
         gr.Warning(invalid_marker_character_message)
     marker_char = shared.opts.hires_fix_tweaks_marker_char
