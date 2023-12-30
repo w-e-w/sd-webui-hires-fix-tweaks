@@ -26,7 +26,7 @@ def connect_reuse_seed(seed, reuse_seed: gr.Button, generation_info: gr.Textbox,
 class UI:
     def __init__(self, script):
         self.script = script
-        self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row2', self.create_ui_cfg))
+        self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row2', self.create_ui_batch_cfg))
         self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row4', self.create_ui_hr_prompt_mode))
         # ui create status
         self.create_ui_cfg_done = None
@@ -75,7 +75,7 @@ class UI:
         if None in [self.create_ui_cfg_done, self.create_hr_seed_ui_done]:
             # pre 1.7.0 compatibility
             with gr.Accordion(label=self.script.title(), open=False):
-                self.create_ui_cfg()
+                self.create_ui_batch_cfg()
                 self.create_ui_hr_prompt_mode()
 
     def create_ui_hr_prompt_mode(self, *args, **kwargs):
@@ -92,7 +92,7 @@ class UI:
         self.create_hr_seed_ui()
         self.create_ui_hr_prompt_mode_done = True
 
-    def create_ui_cfg(self, *args, **kwargs):
+    def create_ui_batch_cfg(self, *args, **kwargs):
         if self.create_ui_cfg_done:
             return
         with gr.Row(elem_id=self.script.elem_id("batch_cfg_row")):
@@ -104,7 +104,7 @@ class UI:
     def create_hr_seed_ui(self, *args, **kwargs):
         if self.create_hr_seed_ui_done:
             return
-        with (ui_components.InputAccordion(False, label="Hr Seed", elem_id=self.script.elem_id('custom_seed')) as self.enable_hr_seed_e):
+        with ui_components.InputAccordion(False, label="Hr Seed", elem_id=self.script.elem_id('custom_seed')) as self.enable_hr_seed_e:
             with gr.Row(elem_id=self.script.elem_id("seed_row")):
                 if shared.cmd_opts.use_textbox_seed:
                     self.hr_seed_e = gr.Textbox(label='Hires Seed', value='0', elem_id=self.script.elem_id("seed"))
@@ -141,6 +141,7 @@ class UI:
 
             self.script.infotext_fields.extend(
                 [
+                    (self.enable_hr_seed_e, lambda d: 'hr_seed' in d),
                     (self.hr_seed_e, "hr_seed"),
                     (self.hr_seed_checkbox_e, lambda d: "hr_variation seed" in d or "hr_seed resize from-1" in d),
                     (self.hr_subseed_e, "hr_variation seed"),
