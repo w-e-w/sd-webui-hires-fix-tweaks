@@ -26,6 +26,8 @@ def connect_reuse_seed(seed, reuse_seed: gr.Button, generation_info: gr.Textbox,
 class UI:
     def __init__(self, script):
         self.script = script
+        self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row2', self.create_ui_cfg))
+        self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row4', self.create_ui_hr_prompt_mode))
         # ui create status
         self.create_ui_cfg_done = None
         self.create_ui_hr_prompt_mode_done = None
@@ -68,10 +70,6 @@ class UI:
             self.hr_seed_resize_from_w_e,
             self.hr_seed_resize_from_h_e
         ]
-
-    def setup_create_ui(self):
-        self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row2', self.create_ui_cfg))
-        self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row4', self.create_ui_hr_prompt_mode))
 
     def fallback_create_ui(self):
         if None in [self.create_ui_cfg_done, self.create_hr_seed_ui_done]:

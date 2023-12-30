@@ -12,7 +12,6 @@ class Script(scripts.Script):
         super().__init__()
         self.infotext_fields = []
         self.on_after_component_elem_id = []
-
         self.ui_class = ui.UI(self)
         self.hires_cfg_scale = hr_cfg_scale.HiresCFGScale(self)
         self.hires_batch_seed = hr_batch_seed.HiresBatchSeed(self)
@@ -22,7 +21,6 @@ class Script(scripts.Script):
 
     def show(self, is_img2img):
         if not is_img2img:
-            self.ui_class.setup_create_ui()
             return scripts.AlwaysVisible
 
     def ui(self, is_img2img):
