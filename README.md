@@ -12,6 +12,7 @@ if you wish to use this
 
 ### known issues
  - Hires variation seed (subeseed) is partially broken
+ - Progress bar is breaks when using hires batch count > 1
 
 ---
 
