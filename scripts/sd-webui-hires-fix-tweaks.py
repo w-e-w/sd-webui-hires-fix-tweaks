@@ -1,4 +1,3 @@
-from functools import partial
 from modules import scripts
 
 from scripts.hires_fix_tweaks.hr_modules import hr_prompt_mode
@@ -12,6 +11,7 @@ class Script(scripts.Script):
     def __init__(self):
         super().__init__()
         self.infotext_fields = []
+        self.on_after_component_elem_id = []
 
         ui.init(self)
         hr_cfg_scale.init(self)
@@ -22,14 +22,11 @@ class Script(scripts.Script):
 
     def show(self, is_img2img):
         if not is_img2img:
-            self.on_after_component_elem_id = [
-                ('txt2img_hires_fix_row2', partial(ui.create_ui_cfg, self)),
-                ('txt2img_hires_fix_row4', partial(ui.create_ui_hr_prompt_mode, self)),
-            ]
+            ui.setup_create_ui(self)
             return scripts.AlwaysVisible
 
     def ui(self, is_img2img):
-        ui.fallback_create_ui(self, is_img2img)
+        ui.fallback_create_ui(self)
         return ui.ui_args(self)
 
     def setup(self, p, *args):
