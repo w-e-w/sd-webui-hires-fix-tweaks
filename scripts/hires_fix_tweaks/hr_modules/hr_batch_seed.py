@@ -14,25 +14,6 @@ class SimpleHTMLParser(HTMLParser):
         self.text_content += data
 
 
-def init(self):
-    self.first_pass_seeds = None
-    self.first_pass_subseeds = None
-    self.first_pass_seed_resize_from_w = None
-    self.first_pass_seed_resize_from_h = None
-
-    self.hr_batch_count = None
-    self.enable_hr_seed = None
-    self.hr_seed = None
-    self.hr_seed_enable_extras = None
-    self.hr_subseed = None
-    self.hr_subseed_strength = None
-    self.hr_seed_resize_from_w = None
-    self.hr_seed_resize_from_h = None
-
-    self.all_hr_seeds = None
-    self.all_hr_subseeds = None
-
-
 def create_infotext_hijack(create_infotext):
     create_infotext_signature = inspect.signature(create_infotext)
 
@@ -235,21 +216,82 @@ def init_hr_seeds(self, p):
         self.all_hr_subseeds = [int(subseed) + x for x in range(len(p.all_subseeds))]
 
 
-def process_batch(self, p, *args, **kwargs):
-    # p.extra_generation_params
+class HiresBatchSeed:
+    def __init__(self,  script):
+        self.script = script
 
-    # if p.enable_hr and getattr(p, 'force_write_hr_info_flag', False):
-    if p.enable_hr:
-        p.hr_seeds = self.all_hr_seeds
-        p.hr_subseeds = self.all_hr_subseeds
-        p.hr_subseed_strength = self.hr_subseed_strength
-        p.hr_seed_resize_from_w = self.hr_seed_resize_from_w
-        p.hr_seed_resize_from_h = self.hr_seed_resize_from_h
+        self.first_pass_seeds = None
+        self.first_pass_subseeds = None
+        self.first_pass_seed_resize_from_w = None
+        self.first_pass_seed_resize_from_h = None
 
+        self.hr_batch_count = None
+        self.enable_hr_seed = None
+        self.hr_seed = None
+        self.hr_seed_enable_extras = None
+        self.hr_subseed = None
+        self.hr_subseed_strength = None
+        self.hr_seed_resize_from_w = None
+        self.hr_seed_resize_from_h = None
 
-def postprocess_batch_list(self, p, pp, *args, **kwargs):
-    p.prompts = p.prompts * self.hr_batch_count
-    p.negative_prompts = p.negative_prompts * self.hr_batch_count
-    p.seeds = p.seeds * self.hr_batch_count
-    p.subseeds = p.subseeds * self.hr_batch_count
+        self.all_hr_seeds = None
+        self.all_hr_subseeds = None
 
+    def process(self, p, *args):
+        # seed init
+        self.hr_batch_count = args[3]  # multi hr seed
+
+        self.enable_hr_seed = args[4]
+
+        if self.enable_hr_seed:
+
+            self.hr_seed = args[5]
+            self.hr_seed_enable_extras = args[6]
+            if self.hr_seed_enable_extras:
+                self.hr_subseed = args[7]
+                self.hr_subseed_strength = args[8]
+                self.hr_seed_resize_from_w = args[9]
+                self.hr_seed_resize_from_h = args[10]
+            else:
+                self.hr_subseed = 0
+                self.hr_subseed_strength = 0
+                self.hr_seed_resize_from_w = 0
+                self.hr_seed_resize_from_h = 0
+            if p.enable_hr:
+                # use to write hr info to params.txt
+                p.force_write_hr_info_flag = True
+        else:
+            # enable_hr_seed is false use first pass seed
+            self.hr_seed = 0
+            self.hr_subseed = 0
+            self.hr_subseed_strength = p.subseed_strength
+            self.hr_seed_resize_from_w = p.seed_resize_from_w
+            self.hr_seed_resize_from_h = p.seed_resize_from_h
+
+        # print(p.all_prompts)
+        # p.sample_hr_pass = self.sample_hr_pass_hijack(p, p.sample_hr_pass)
+        p.sample_hr_pass = sample_hr_pass_hijack(self, p, p.sample_hr_pass)
+
+        # p.sample = self.sample_hijack(p, p.sample)
+        p.sample = sample_hijack(self, p, p.sample)
+        # p.js = self.js_hijack(p.js)
+
+        # init hr seeds
+        init_hr_seeds(self, p)
+
+    def process_batch(self, p, *args, **kwargs):
+        # p.extra_generation_params
+
+        # if p.enable_hr and getattr(p, 'force_write_hr_info_flag', False):
+        if p.enable_hr:
+            p.hr_seeds = self.all_hr_seeds
+            p.hr_subseeds = self.all_hr_subseeds
+            p.hr_subseed_strength = self.hr_subseed_strength
+            p.hr_seed_resize_from_w = self.hr_seed_resize_from_w
+            p.hr_seed_resize_from_h = self.hr_seed_resize_from_h
+
+    def postprocess_batch_list(self, p, pp, *args, **kwargs):
+        p.prompts = p.prompts * self.hr_batch_count
+        p.negative_prompts = p.negative_prompts * self.hr_batch_count
+        p.seeds = p.seeds * self.hr_batch_count
+        p.subseeds = p.subseeds * self.hr_batch_count
