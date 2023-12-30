@@ -11,7 +11,7 @@ if you wish to use this
 ### Feel free to request features
 
 ### known issues
- - hires subseed seems to be broken
+ - Hires variation seed (subeseed) is partially broken
 
 ---
 
