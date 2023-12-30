@@ -45,3 +45,6 @@ class Script(scripts.Script):
 
     def postprocess_batch(self, p, *args, **kwargs):
         self.hires_cfg_scale.postprocess_batch(p)
+
+    def postprocess(self, p, processed, *args):
+        self.hires_batch_seed.postprocess(p, processed, *args)

@@ -241,3 +241,7 @@ class HiresBatchSeed:
         p.negative_prompts = p.negative_prompts * self.hr_batch_count
         p.seeds = p.seeds * self.hr_batch_count
         p.subseeds = p.subseeds * self.hr_batch_count
+
+    def postprocess(self, p, processed, *args):
+        processed.all_seeds = [j for i in range(0, len(processed.all_seeds), processed.batch_size) for j in processed.all_seeds[i:i + processed.batch_size] * self.hr_batch_count]
+        processed.all_subseeds = [j for i in range(0, len(processed.all_subseeds), processed.batch_size) for j in processed.all_subseeds[i:i + processed.batch_size] * self.hr_batch_count]
