@@ -28,7 +28,7 @@ the types of options and features that are less likely to be built into web UI i
  - Prepend:<br>prepend hires prompt before first pass prompt
  - Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
 
-Hires Batch and Seed
+3. Hires Batch and Seed
  - Generate multiple hires pass form first pass image
  - Specify different seed for hires pass
 
