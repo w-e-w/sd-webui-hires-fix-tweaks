@@ -14,6 +14,25 @@ class SimpleHTMLParser(HTMLParser):
         self.text_content += data
 
 
+def init(self):
+    self.first_pass_seeds = None
+    self.first_pass_subseeds = None
+    self.first_pass_seed_resize_from_w = None
+    self.first_pass_seed_resize_from_h = None
+
+    self.hr_batch_count = None
+    self.enable_hr_seed = None
+    self.hr_seed = None
+    self.hr_seed_enable_extras = None
+    self.hr_subseed = None
+    self.hr_subseed_strength = None
+    self.hr_seed_resize_from_w = None
+    self.hr_seed_resize_from_h = None
+
+    self.all_hr_seeds = None
+    self.all_hr_subseeds = None
+
+
 def create_infotext_hijack(create_infotext):
     create_infotext_signature = inspect.signature(create_infotext)
 

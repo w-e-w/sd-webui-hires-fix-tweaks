@@ -5,7 +5,63 @@ from scripts.hires_fix_tweaks.hr_modules import hr_batch_seed
 import gradio as gr
 
 
+def ui_args(self):
+    return [
+        # hr cfg scale
+        self.hr_cfg_e,
+
+        # hr prompt mode
+        self.hr_prompt_mode_e,
+        self.hr_negative_prompt_mode_e,
+
+        # hr batch and seed
+        self.hr_batch_count_e,
+        self.enable_hr_seed_e,
+        self.hr_seed_e,
+        self.hr_seed_checkbox_e,
+        self.hr_subseed_e,
+        self.hr_subseed_strength_e,
+        self.hr_seed_resize_from_w_e,
+        self.hr_seed_resize_from_h_e
+    ]
+
+
+def init(self):
+    # ui create status
+    self.create_ui_cfg_done = None
+    self.create_ui_hr_prompt_mode_done = None
+    self.create_hr_seed_ui_done = None
+
+    # gradio elements
+    # hr cfg scale
+    self.hr_cfg_e = None
+
+    # hr prompt mode
+    self.hr_prompt_mode_e = None
+    self.hr_negative_prompt_mode_e = None
+
+    # hr batch and seed
+    self.hr_batch_count_e = None
+    self.enable_hr_seed_e = None
+    self.hr_seed_e = None
+    self.hr_seed_checkbox_e = None
+    self.hr_subseed_e = None
+    self.hr_subseed_strength_e = None
+    self.hr_seed_resize_from_h_e = None
+    self.hr_seed_resize_from_w_e = None
+
+
+def fallback_create_ui(self, is_img2img):
+    if None in [self.create_ui_cfg_done, self.create_hr_seed_ui_done]:
+        # pre 1.7.0 compatibility
+        with gr.Accordion(label=self.title(), open=False):
+            create_ui_cfg(self)
+            create_ui_hr_prompt_mode(self)
+
+
 def create_ui_cfg(self, *args, **kwargs):
+    if self.create_ui_cfg_done:
+        return
     with gr.Row(elem_id=self.elem_id("batch_cfg_row")):
         self.hr_cfg_e = gr.Slider(value=0, minimum=0, maximum=30.0, step=0.5, label='Hires CFG Scale',
                                   elem_id=self.elem_id('hr_cfg_scale'), tooltip='0: same as first pass',
@@ -17,6 +73,8 @@ def create_ui_cfg(self, *args, **kwargs):
 
 
 def create_ui_hr_prompt_mode(self, *args, **kwargs):
+    if self.create_ui_hr_prompt_mode_done:
+        return
     gr_ui_element = getattr(gr, shared.opts.hires_fix_tweaks_hires_prompt_mode_ui_type, gr.Radio)
     with gr.Row():
         self.hr_prompt_mode_e = gr_ui_element(
@@ -39,6 +97,8 @@ def create_ui_hr_prompt_mode(self, *args, **kwargs):
 
 
 def create_hr_seed_ui(self, *args, **kwargs):
+    if self.create_hr_seed_ui_done:
+        return
     with ui_components.InputAccordion(False, label="Hr Seed",
                                       elem_id=self.elem_id('custom_seed')) as self.enable_hr_seed_e:  # todo
         # with gr.Row(elem_id=self.elem_id("batch_row")):

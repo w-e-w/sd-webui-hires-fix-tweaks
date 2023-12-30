@@ -1,3 +1,7 @@
+def init(self):
+    self.apply_hr_cfg_scale = None
+    self.first_pass_cfg_scale = None
+
 
 def setup(self, p, *args):
     p.hr_cfg_scale = args[0]
