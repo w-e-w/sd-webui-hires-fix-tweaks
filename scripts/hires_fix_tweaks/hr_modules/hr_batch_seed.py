@@ -43,8 +43,6 @@ def create_infotext_hijack(create_infotext):
                 # todo fix subseed
                 if p.subseed_strength != p.hr_subseed_strength:
 
-
-
                     if hasattr(p, 'hr_subseeds') and p.subseeds[index] != p.hr_subseeds[index] and p.hr_subseed_strength != 0:
                         p.extra_generation_params['hr_subseed'] = p.hr_subseeds[index]
                     else:
@@ -55,10 +53,9 @@ def create_infotext_hijack(create_infotext):
                     else:
                         p.extra_generation_params.pop('hr seed resize from', None)
             except Exception as e:
-                errors.report(f"not results: {e}")
+                errors.report(f"not results: {e}")  # todo remove
                 for key in ['hr_seed', 'hr_subseed', 'hr seed resize from']:
                     p.extra_generation_params.pop(key, None)
-                pass
 
         except Exception as e:
             errors.report(f"create infotext hijack failed: {e}")
@@ -95,19 +92,12 @@ def sample_hr_pass_hijack(self, p, sample_hr_pass):
 
         samples = processing.DecodedSamples()
         save_images_before_highres_fix = shared.opts.save_images_before_highres_fix
-        #
-        # self.all_hr_seeds
-        # self.all_hr_subseed
 
         p.hr_seeds = []
         p.hr_subseeds = []
-        print('p.seeds', p.seeds, len(p.seeds), 'p.batch_size', p.batch_size)
-
 
         hr_seeds_batch = self.all_hr_seeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
         hr_subseeds_batch = self.all_hr_subseeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
-        # p.seeds = p.all_seeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
-        # p.subseeds = p.all_subseeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
 
         p.subseed_strength = p.hr_subseed_strength
         p.seed_resize_from_w = self.hr_seed_resize_from_w
@@ -142,49 +132,6 @@ def sample_hr_pass_hijack(self, p, sample_hr_pass):
             return samples
 
     return wrapped_function
-
-
-def process(self, p, *args):
-    # seed init
-    self.hr_batch_count = args[3]  # multi hr seed
-
-    self.enable_hr_seed = args[4]
-
-    if self.enable_hr_seed:
-
-        self.hr_seed = args[5]
-        self.hr_seed_enable_extras = args[6]
-        if self.hr_seed_enable_extras:
-            self.hr_subseed = args[7]
-            self.hr_subseed_strength = args[8]
-            self.hr_seed_resize_from_w = args[9]
-            self.hr_seed_resize_from_h = args[10]
-        else:
-            self.hr_subseed = 0
-            self.hr_subseed_strength = 0
-            self.hr_seed_resize_from_w = 0
-            self.hr_seed_resize_from_h = 0
-        if p.enable_hr:
-            # use to write hr info to params.txt
-            p.force_write_hr_info_flag = True
-    else:
-        # enable_hr_seed is false use first pass seed
-        self.hr_seed = 0
-        self.hr_subseed = 0
-        self.hr_subseed_strength = p.subseed_strength
-        self.hr_seed_resize_from_w = p.seed_resize_from_w
-        self.hr_seed_resize_from_h = p.seed_resize_from_h
-
-    # print(p.all_prompts)
-    # p.sample_hr_pass = self.sample_hr_pass_hijack(p, p.sample_hr_pass)
-    p.sample_hr_pass = sample_hr_pass_hijack(self, p, p.sample_hr_pass)
-
-    # p.sample = self.sample_hijack(p, p.sample)
-    p.sample = sample_hijack(self, p, p.sample)
-    # p.js = self.js_hijack(p.js)
-
-    # init hr seeds
-    init_hr_seeds(self, p)
 
 
 def init_hr_seeds(self, p):
