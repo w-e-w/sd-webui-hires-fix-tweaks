@@ -74,7 +74,7 @@ except RuntimeError:
     pass
 
 
-def sample_hijack(self, p, sample):
+def sample_hijack(p, sample):
     def wrapped_function(*args, **kwargs):
         p.force_write_hr_info_flag = False
         result = sample(*args, **kwargs)
@@ -219,7 +219,7 @@ class HiresBatchSeed:
         p.sample_hr_pass = sample_hr_pass_hijack(self, p, p.sample_hr_pass)
 
         # p.sample = self.sample_hijack(p, p.sample)
-        p.sample = sample_hijack(self, p, p.sample)
+        p.sample = sample_hijack(p, p.sample)
         # p.js = self.js_hijack(p.js)
 
         # init hr seeds
