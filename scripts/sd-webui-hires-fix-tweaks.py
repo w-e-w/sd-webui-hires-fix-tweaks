@@ -13,7 +13,7 @@ class Script(scripts.Script):
         self.infotext_fields = []
         self.on_after_component_elem_id = []
 
-        ui.init(self)
+        self.ui_class = ui.UI(self)
         self.hires_cfg_scale = hr_cfg_scale.HiresCFGScale(self)
         self.hires_batch_seed = hr_batch_seed.HiresBatchSeed(self)
 
@@ -22,12 +22,12 @@ class Script(scripts.Script):
 
     def show(self, is_img2img):
         if not is_img2img:
-            ui.setup_create_ui(self)
+            self.ui_class.setup_create_ui()
             return scripts.AlwaysVisible
 
     def ui(self, is_img2img):
-        ui.fallback_create_ui(self)
-        return ui.ui_args(self)
+        self.ui_class.fallback_create_ui()
+        return self.ui_class.ui_args()
 
     def setup(self, p, *args):
         hr_prompt_mode.setup(self, p, *args)
