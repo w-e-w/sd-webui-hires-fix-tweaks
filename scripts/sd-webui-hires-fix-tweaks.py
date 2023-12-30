@@ -14,7 +14,7 @@ class Script(scripts.Script):
         self.on_after_component_elem_id = []
 
         ui.init(self)
-        hr_cfg_scale.init(self)
+        self.hires_cfg_scale = hr_cfg_scale.HiresCFGScale(self)
         hr_batch_seed.init(self)
 
     def title(self):
@@ -31,7 +31,7 @@ class Script(scripts.Script):
 
     def setup(self, p, *args):
         hr_prompt_mode.setup(self, p, *args)
-        hr_cfg_scale.setup(self, p, *args)
+        self.hires_cfg_scale.setup(p, *args)
 
     def process(self, p, *args):
         hr_batch_seed.process(self, p, *args)
@@ -40,14 +40,14 @@ class Script(scripts.Script):
         pass
 
     def process_batch(self, p, *args, **kwargs):
-        hr_cfg_scale.process_batch(self, p, *args, **kwargs)
+        self.hires_cfg_scale.process_batch(p, *args, **kwargs)
         hr_batch_seed.process_batch(self, p, *args, **kwargs)
 
     def before_hr(self, p, *args):
-        hr_cfg_scale.before_hr(self, p)
+        self.hires_cfg_scale.before_hr(p)
 
     def postprocess_batch_list(self, p, pp, *args, **kwargs):
         hr_batch_seed.postprocess_batch_list(self, p, pp, *args, **kwargs)
 
     def postprocess_batch(self, p, *args, **kwargs):
-        hr_cfg_scale.postprocess_batch(self, p)
+        self.hires_cfg_scale.postprocess_batch(p)
