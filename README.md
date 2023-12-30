@@ -1,5 +1,20 @@
 # sd-webui-hires-fix-tweaks
 
+### This is still in development and not meant to be used by users
+normally this repo would be set as private at this stage but due to some reasons I opened it up to the public
+
+if you wish to use this
+- expect things to break and change without warning
+
+- expect me to do random things such as force push commit history change the repo name etc
+
+### Feel free to request features
+
+### known issues
+ - hires subseed seems to be broken
+
+---
+
 the goal of this extension is to add more options and features to hires fix
 the types of options and features that are less likely to be built into web UI itself as they only apply to certain workflows
 
@@ -8,10 +23,14 @@ the types of options and features that are less likely to be built into web UI i
 1. Hires pass CFG scale<br>set a different CFG scale for hires pass<br>this is particularly useful if you're working with LCM
 
 2. Hires prompt mode
-- Default webui behavior:<br>if blank same as first pass else use hires prompt 
-- Append:<br>append hires prompt after first pass prompt
-- Prepend:<br>prepend hires prompt before first pass prompt
-- Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
+ - Default webui behavior:<br>if blank same as first pass else use hires prompt 
+ - Append:<br>append hires prompt after first pass prompt
+ - Prepend:<br>prepend hires prompt before first pass prompt
+ - Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
+
+Hires Batch and Seed
+ - Generate multiple hires pass form first pass image
+ - Specify different seed for hires pass
 
 ### Prompt Search and Replace syntax
 When in Prompt Search and Replace mode the first pass prompt will be used as the base template to perform a search and replace on to create the hires prompt.
@@ -72,8 +91,3 @@ replace replacement can
 be multi-line
 like so
 ```
-
-this will be an extension to extend the options of hires fix
-this is still in development and not meant to be used by users
-normally this repo would be set as private at this stage
-expect me to do random things such as Force push commit history
