@@ -85,9 +85,10 @@ class UI:
         with gr.Row():
             self.hr_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires prompt mode', value='Default', elem_id=self.script.elem_id('hr_prompt_extend_mode'), visible=shared.opts.hires_fix_show_prompts and shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
             self.hr_negative_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires negative prompt mode', value='Default', elem_id=self.script.elem_id('hr_negative_prompt_extend_mode'), visible=shared.opts.hires_fix_show_prompts and shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
-            self.script.infotext_fields.append((self.hr_prompt_mode_e, lambda d: 'Default'))
-            self.script.infotext_fields.append((self.hr_negative_prompt_mode_e, lambda d: 'Default'))
-
+            self.script.infotext_fields.extend([
+                (self.hr_prompt_mode_e, lambda d: 'Default'),
+                (self.hr_negative_prompt_mode_e, lambda d: 'Default'),
+            ])
         self.create_hr_seed_ui()
         self.create_ui_hr_prompt_mode_done = True
 
@@ -103,7 +104,7 @@ class UI:
     def create_hr_seed_ui(self, *args, **kwargs):
         if self.create_hr_seed_ui_done:
             return
-        with ui_components.InputAccordion(False, label="Hr Seed", elem_id=self.script.elem_id('custom_seed')) as self.enable_hr_seed_e:
+        with (ui_components.InputAccordion(False, label="Hr Seed", elem_id=self.script.elem_id('custom_seed')) as self.enable_hr_seed_e):
             with gr.Row(elem_id=self.script.elem_id("seed_row")):
                 if shared.cmd_opts.use_textbox_seed:
                     self.hr_seed_e = gr.Textbox(label='Hires Seed', value='0', elem_id=self.script.elem_id("seed"))
@@ -138,14 +139,16 @@ class UI:
 
             self.hr_seed_checkbox_e.change(lambda x: gr.update(visible=x), show_progress=False, inputs=[self.hr_seed_checkbox_e], outputs=[seed_extras])
 
-            self.script.infotext_fields = [
-                (self.hr_seed_e, "hr_seed"),
-                (self.hr_seed_checkbox_e, lambda d: "hr_variation seed" in d or "hr_seed resize from-1" in d),
-                (self.hr_subseed_e, "hr_variation seed"),
-                (self.hr_subseed_strength_e, "hr_variation seed strength"),
-                (self.hr_seed_resize_from_w_e, "hr_seed resize from-1"),
-                (self.hr_seed_resize_from_h_e, "hr_seed resize from-2"),
-            ]
+            self.script.infotext_fields.extend(
+                [
+                    (self.hr_seed_e, "hr_seed"),
+                    (self.hr_seed_checkbox_e, lambda d: "hr_variation seed" in d or "hr_seed resize from-1" in d),
+                    (self.hr_subseed_e, "hr_variation seed"),
+                    (self.hr_subseed_strength_e, "hr_variation seed strength"),
+                    (self.hr_seed_resize_from_w_e, "hr_seed resize from-1"),
+                    (self.hr_seed_resize_from_h_e, "hr_seed resize from-2"),
+                ]
+            )
 
             self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_seed_e, reuse_seed, x.component, False), elem_id=f'html_info_{self.script.tabname}')
             self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_subseed_e, reuse_subseed, x.component, True), elem_id=f'html_info_{self.script.tabname}')
