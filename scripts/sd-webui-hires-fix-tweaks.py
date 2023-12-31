@@ -3,7 +3,7 @@ from scripts.hires_fix_tweaks import ui, xyz, settings  # noqa: F401
 from modules import scripts
 
 
-class Script(scripts.Script):
+class HiresFixTweaks(scripts.Script):
     def __init__(self):
         super().__init__()
         self.infotext_fields = []
@@ -26,6 +26,7 @@ class Script(scripts.Script):
     def setup(self, p, *args):
         hr_prompt_mode.setup(p, *args)
         self.hires_cfg_scale.setup(p, *args)
+        self.hires_batch_seed.setup(p, *args)
 
     def process(self, p, *args):
         self.hires_batch_seed.process(p, *args)
@@ -48,3 +49,6 @@ class Script(scripts.Script):
 
     def postprocess(self, p, processed, *args):
         self.hires_batch_seed.postprocess(p, processed, *args)
+
+
+hr_batch_seed.hijack_create_infotext(HiresFixTweaks)

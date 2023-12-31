@@ -1,4 +1,4 @@
-from modules import errors, patches, processing, shared
+from modules import errors, patches, processing, shared, script_callbacks
 from html.parser import HTMLParser
 import inspect
 import random
@@ -13,7 +13,7 @@ class SimpleHTMLParser(HTMLParser):
         self.text_content += data
 
 
-def create_infotext_hijack(create_infotext):
+def create_infotext_hijack(create_infotext, script_class):
     create_infotext_signature = inspect.signature(create_infotext)
 
     def wrapped_function(*args, **kwargs):
@@ -21,40 +21,45 @@ def create_infotext_hijack(create_infotext):
             bind_args = create_infotext_signature.bind(*args, **kwargs)
             bind_args.apply_defaults()
             bind_args = bind_args.arguments
-
             p = bind_args['p']
-            # iteration = bind_args['iteration']
-            # position_in_batch = bind_args['position_in_batch']
             index = bind_args['index']
             use_main_prompt = bind_args['use_main_prompt']
 
             try:
-                if use_main_prompt or getattr(p, 'force_write_hr_info_flag', None):
+                hires_batch_seed = next((obj for obj in p.scripts.alwayson_scripts if isinstance(obj, script_class))).hires_batch_seed
+                # if use_main_prompt or getattr(p, 'force_write_hr_info_flag', None):
+                if use_main_prompt or hires_batch_seed.force_write_hr_info_flag:
                     index = 0
                 elif index is None:
                     assert False, 'index is None'
-                    # index = position_in_batch + iteration * p.batch_size
+
                 # add_hr_seed_info(p, index)
-                if hasattr(p, 'hr_seeds') and p.seeds[index] != p.hr_seeds[index]:
-                    p.extra_generation_params['hr_seed'] = p.hr_seeds[index]
+                # if hasattr(p, 'hr_seeds') and p.seeds[index] != p.hr_seeds[index]:
+                if p.seeds[index] != hires_batch_seed.hr_seeds[index]:
+                    # p.extra_generation_params['hr_seed'] = p.hr_seeds[index]
+                    p.extra_generation_params['Hires seed'] = hires_batch_seed.hr_seeds[index]
                 else:
-                    p.extra_generation_params.pop('hr_seed', None)
+                    p.extra_generation_params.pop('Hires seed', None)
 
-                # todo fix subseed
-                if p.subseed_strength != p.hr_subseed_strength:
-
-                    if hasattr(p, 'hr_subseeds') and p.subseeds[index] != p.hr_subseeds[index] and p.hr_subseed_strength != 0:
-                        p.extra_generation_params['hr_subseed'] = p.hr_subseeds[index]
+                if hires_batch_seed.hr_subseed_strength > 0:
+                    if hires_batch_seed.hr_subseeds[index] != p.subseeds[index] or p.subseed_strength == 0:
+                        p.extra_generation_params['Hires variation seed'] = hires_batch_seed.hr_subseeds[index]
                     else:
-                        p.extra_generation_params.pop('hr_subseed', None)
+                        p.extra_generation_params.pop('Hires variation seed', None)
+                else:
+                    p.extra_generation_params.pop('Hires variation seed', None)
 
-                    if hasattr(p, 'hr_seed_resize_from_w') and hasattr(p, 'p.hr_seed_resize_from_h') and p.hr_seed_resize_from_w > 0 and p.hr_seed_resize_from_h > 0:
-                        p.extra_generation_params['hr seed resize from'] = f"{p.hr_seed_resize_from_w}x{p.hr_seed_resize_from_h}"
-                    else:
-                        p.extra_generation_params.pop('hr seed resize from', None)
+                if hires_batch_seed.hr_subseed_strength != p.subseed_strength:
+                    p.extra_generation_params['Hires variation seed strength'] = hires_batch_seed.hr_subseed_strength
+                else:
+                    p.extra_generation_params.pop('Hires variation seed strength', None)
+
+                if p.seed_resize_from_w != hires_batch_seed.hr_seed_resize_from_w or p.seed_resize_from_h != hires_batch_seed.hr_seed_resize_from_h:
+                    p.extra_generation_params['Hires seed resize from'] = f'{hires_batch_seed.hr_seed_resize_from_w}x{hires_batch_seed.hr_seed_resize_from_h}'
+
             except Exception as e:
                 errors.report(f"not results: {e}")  # todo remove
-                for key in ['hr_seed', 'hr_subseed', 'hr seed resize from']:
+                for key in ['Hires seed', 'hr_subseed', 'hr seed resize from']:
                     p.extra_generation_params.pop(key, None)
 
         except Exception as e:
@@ -68,70 +73,17 @@ def create_infotext_hijack(create_infotext):
     return wrapped_function
 
 
-try:
-    patches.patch(key=__name__, obj=processing, field='create_infotext', replacement=create_infotext_hijack(processing.create_infotext))
-except RuntimeError:
-    pass
+def hijack_create_infotext(script_class):
+    try:
+        original = patches.patch(key=__name__, obj=processing, field='create_infotext', replacement=create_infotext_hijack(processing.create_infotext, script_class))
 
+        def undo_hijack():
+            processing.create_infotext = original
 
-def sample_hijack(p, sample):
-    def wrapped_function(*args, **kwargs):
-        p.force_write_hr_info_flag = False
-        result = sample(*args, **kwargs)
-        return result
-    return wrapped_function
-
-
-def sample_hr_pass_hijack(self, p, sample_hr_pass):
-    def wrapped_function(*args, **kwargs):
-        self.first_pass_seeds = p.seeds
-        self.first_pass_subseeds = p.subseeds
-        self.first_pass_subseed_strength = p.subseed_strength
-        self.first_pass_seed_resize_from_w = p.seed_resize_from_w
-        self.first_pass_seed_resize_from_h = p.seed_resize_from_h
-
-        samples = processing.DecodedSamples()
-        save_images_before_highres_fix = shared.opts.save_images_before_highres_fix
-
-        p.hr_seeds = []
-        p.hr_subseeds = []
-
-        hr_seeds_batch = self.all_hr_seeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
-        hr_subseeds_batch = self.all_hr_subseeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
-
-        p.subseed_strength = p.hr_subseed_strength
-        p.seed_resize_from_w = self.hr_seed_resize_from_w
-        p.seed_resize_from_h = self.hr_seed_resize_from_h
-
-        try:
-            for index in range(self.hr_batch_count):
-                # p.seeds = [seed + index for seed in self.first_pass_seeds]
-                p.seeds = [seed + index for seed in hr_seeds_batch]
-                p.hr_seeds.extend(p.seeds)
-                # p.hr_seeds = p.seeds
-                #
-                # p.subseeds = [subseed + index for subseed in self.first_pass_subseeds]
-                p.subseeds = [subseed + index for subseed in hr_subseeds_batch]
-                p.hr_subseeds.extend(p.subseeds)
-                # p.hr_subseeds = p.subseeds
-
-                result = sample_hr_pass(*args, **kwargs)
-                samples.extend(result)
-                # disable saving images before highres fix for all but the first batch
-                shared.opts.save_images_before_highres_fix = False
-
-        finally:
-            p.seeds = self.first_pass_seeds
-            p.subseeds = self.first_pass_subseeds
-            p.subseed_strength = self.first_pass_subseed_strength
-            p.seed_resize_from_w = self.first_pass_seed_resize_from_w
-            p.seed_resize_from_h = self.first_pass_seed_resize_from_h
-
-            # restore original shared.opts.save_images_before_highres_fix setting
-            shared.opts.save_images_before_highres_fix = save_images_before_highres_fix
-            return samples
-
-    return wrapped_function
+        script_callbacks.on_script_unloaded(undo_hijack)
+    except RuntimeError as e:
+        print(e)
+        pass
 
 
 def init_hr_seeds(self, p):
@@ -183,10 +135,24 @@ class HiresBatchSeed:
         self.all_hr_seeds = None
         self.all_hr_subseeds = None
 
+    def setup(self, p, *args):
+        # cleanup
+        self.force_write_hr_info_flag = None
+        self.hr_seeds = None
+        self.hr_subseed_strength = None
+        self.hr_subseeds = None
+        self.hr_seed_resize_from_w = None
+        self.hr_seed_resize_from_h = None
+
     def process(self, p, *args):
         # seed init
         self.hr_batch_count = args[3]  # multi hr seed
         self.enable_hr_seed = args[4]
+
+        self.enable = p.enable_hr and (self.enable_hr_seed or self.hr_batch_count > 1)
+        if not self.enable:
+            return
+
         if self.enable_hr_seed:
             self.hr_seed = args[5]
             self.hr_seed_enable_extras = args[6]
@@ -198,11 +164,12 @@ class HiresBatchSeed:
             else:
                 self.hr_subseed = 0
                 self.hr_subseed_strength = 0
-                self.hr_seed_resize_from_w = 0
-                self.hr_seed_resize_from_h = 0
-            if p.enable_hr:
+                self.hr_seed_resize_from_w = -1
+                self.hr_seed_resize_from_h = -1
+            # if p.enable_hr:
                 # use to write hr info to params.txt
-                p.force_write_hr_info_flag = True
+                # p.force_write_hr_info_flag = True
+            self.force_write_hr_info_flag = True
         else:
             # enable_hr_seed is false use first pass seed
             self.hr_seed = 0
@@ -213,26 +180,99 @@ class HiresBatchSeed:
 
         init_hr_seeds(self, p)
 
-        p.sample_hr_pass = sample_hr_pass_hijack(self, p, p.sample_hr_pass)
-        p.sample = sample_hijack(p, p.sample)
+        p.sample_hr_pass = self.sample_hr_pass_hijack(p, p.sample_hr_pass)
+        p.sample = self.sample_hijack(p, p.sample)
 
     def process_batch(self, p, *args, **kwargs):
-        if p.enable_hr:
-            p.hr_seeds = self.all_hr_seeds
-            p.hr_subseeds = self.all_hr_subseeds
-            p.hr_subseed_strength = self.hr_subseed_strength
-            p.hr_seed_resize_from_w = self.hr_seed_resize_from_w
-            p.hr_seed_resize_from_h = self.hr_seed_resize_from_h
+        if not self.enable:
+            return
+
+        # p.hr_seeds = self.all_hr_seeds
+        self.hr_seeds = self.all_hr_seeds
+        # p.hr_subseeds = self.all_hr_subseeds
+        self.hr_subseeds = self.all_hr_subseeds
+        # p.hr_subseed_strength = self.hr_subseed_strength
+        # p.hr_seed_resize_from_w = self.hr_seed_resize_from_w
+        # p.hr_seed_resize_from_h = self.hr_seed_resize_from_h
 
     def postprocess_batch_list(self, p, pp, *args, **kwargs):
+        if not self.enable:
+            return
         p.prompts = p.prompts * self.hr_batch_count
         p.negative_prompts = p.negative_prompts * self.hr_batch_count
         p.seeds = p.seeds * self.hr_batch_count
         p.subseeds = p.subseeds * self.hr_batch_count
 
     def postprocess(self, p, processed, *args):
+        if not self.enable:
+            return
+
+        def any_key_in_dict2(keys, d):
+            return any(map(d.__contains__, keys))
         processed.all_seeds = [j for i in range(0, len(processed.all_seeds), processed.batch_size) for j in processed.all_seeds[i:i + processed.batch_size] * self.hr_batch_count]
         processed.all_subseeds = [j for i in range(0, len(processed.all_subseeds), processed.batch_size) for j in processed.all_subseeds[i:i + processed.batch_size] * self.hr_batch_count]
+
+    def sample_hijack(self, p, sample):
+        def wrapped_function(*args, **kwargs):
+            if not self.enable:
+                return sample(*args, **kwargs)
+
+            # p.force_write_hr_info_flag = False
+            self.force_write_hr_info_flag = False
+            result = sample(*args, **kwargs)
+            return result
+
+        return wrapped_function
+
+    def sample_hr_pass_hijack(self, p, sample_hr_pass):
+        def wrapped_function(*args, **kwargs):
+            if not self.enable:
+                return sample_hr_pass(*args, **kwargs)
+
+            # save original shared.opts.save_images_before_highres_fix setting to be restored later
+            save_images_before_highres_fix = shared.opts.save_images_before_highres_fix
+
+            self.first_pass_seeds = p.seeds
+            self.first_pass_subseeds = p.subseeds
+            self.first_pass_subseed_strength = p.subseed_strength
+            self.first_pass_seed_resize_from_w = p.seed_resize_from_w
+            self.first_pass_seed_resize_from_h = p.seed_resize_from_h
+
+            samples = processing.DecodedSamples()
+            try:
+                p.subseed_strength = self.hr_subseed_strength
+                p.seed_resize_from_w = self.hr_seed_resize_from_w
+                p.seed_resize_from_h = self.hr_seed_resize_from_h
+
+                self.hr_seeds = []
+                self.hr_subseeds = []
+                hr_seeds_batch = self.all_hr_seeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
+                hr_subseeds_batch = self.all_hr_subseeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
+
+                for index in range(self.hr_batch_count):
+                    p.seeds = [seed + index for seed in hr_seeds_batch] if self.hr_subseed_strength == 0 else hr_seeds_batch
+                    self.hr_seeds.extend(p.seeds)
+                    p.subseeds = [subseed + index for subseed in hr_subseeds_batch]
+                    self.hr_subseeds.extend(p.subseeds)
+
+                    result = sample_hr_pass(*args, **kwargs)
+                    samples.extend(result)
+
+                    # disable saving images before highres fix for all but the first batch
+                    shared.opts.save_images_before_highres_fix = False
+            finally:
+                #
+                p.seeds = self.first_pass_seeds
+                p.subseeds = self.first_pass_subseeds
+                p.subseed_strength = self.first_pass_subseed_strength
+                p.seed_resize_from_w = self.first_pass_seed_resize_from_w
+                p.seed_resize_from_h = self.first_pass_seed_resize_from_h
+
+                # restore original shared.opts.save_images_before_highres_fix setting
+                shared.opts.save_images_before_highres_fix = save_images_before_highres_fix
+                return samples
+
+        return wrapped_function
 
 # todo fix subseed
 # todo fix progress bar
