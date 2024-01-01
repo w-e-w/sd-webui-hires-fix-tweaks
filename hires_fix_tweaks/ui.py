@@ -1,8 +1,13 @@
 from hires_fix_tweaks.hr_modules import hr_prompt_mode
 from hires_fix_tweaks.hr_modules import hr_batch_seed
-from modules import generation_parameters_copypaste  # noqa generation_parameters_copypaste is the ailes to infotext_utils
+from modules import generation_parameters_copypaste  # noqa: generation_parameters_copypaste is the ailes to infotext_utils
 from modules import shared, ui_components, ui
 import gradio as gr
+
+try:
+    from modules.ui_components import InputAccordion
+except ImportError:
+    InputAccordion = None
 
 
 def connect_reuse_seed(seed, reuse_seed: gr.Button, generation_info: gr.Textbox, is_subseed):
@@ -72,8 +77,10 @@ class UI:
         ]
 
     def fallback_create_ui(self):
+        global InputAccordion
         if None in [self.create_ui_cfg_done, self.create_hr_seed_ui_done]:
             # pre 1.7.0 compatibility
+            InputAccordion = None
             with gr.Accordion(label=self.script.title(), open=False):
                 self.create_ui_batch_cfg()
                 self.create_ui_hr_prompt_mode()
@@ -101,15 +108,23 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
             return
         with gr.Row(elem_id=self.script.elem_id("batch_cfg_row")):
             self.hr_cfg_e = gr.Slider(value=0, minimum=0, maximum=30.0, step=0.5, label='Hires CFG Scale', elem_id=self.script.elem_id('hr_cfg_scale'), tooltip='0: same as first pass', visible=shared.opts.hires_fix_tweaks_show_hr_cfg)
-            self.hr_batch_count_e = gr.Slider(label='Hires batch count', value=1, minimum=1, maximum=64, step=1, elem_id=self.script.elem_id('batch_count'))
+            self.hr_batch_count_e = gr.Slider(label='Hires batch count', value=1, minimum=1, maximum=64, step=1, elem_id=self.script.elem_id('batch_count'), visible=shared.opts.hires_fix_tweaks_show_hr_batch_seed)
             self.script.infotext_fields.append((self.hr_cfg_e, lambda d: d.get('Hires CFG scale', 0)))
         self.create_ui_cfg_done = True
 
     def create_hr_seed_ui(self, *args, **kwargs):
         if self.create_hr_seed_ui_done:
             return
-        with ui_components.InputAccordion(False, label="Hr Seed", elem_id=self.script.elem_id('custom_seed')) as self.enable_hr_seed_e:
+        with (
+            ui_components.InputAccordion(False, label="Hires Seed", elem_id=self.script.elem_id('custom_seed'), visible=shared.opts.hires_fix_tweaks_show_hr_batch_seed) if InputAccordion
+            else gr.Accordion('Hires Seed', open=False, elem_id=self.script.elem_id('custom_seed'))
+            as self.enable_hr_seed_e
+        ):
             with gr.Row(elem_id=self.script.elem_id("seed_row")):
+                if not InputAccordion:
+                    # pre 1.7.0 compatibility
+                    self.enable_hr_seed_e = gr.Checkbox(label='Enable', elem_id=self.script.elem_id("enable_hr_seed_subseed_show"), value=False)
+                    # the elem_id suffix is used _subseed_show to apply the [id$=_subseed_show] css rule
                 if shared.cmd_opts.use_textbox_seed:
                     self.hr_seed_e = gr.Textbox(label='Hires Seed', value='0', elem_id=self.script.elem_id("seed"))
                 else:

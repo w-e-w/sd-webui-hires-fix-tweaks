@@ -22,15 +22,21 @@ shared.options_templates.update(
             'hires_fix_tweaks_show_hr_cfg':
                 shared.OptionInfo(
                     True,
-                    'Show hires Hires CFG Scale slider',
+                    'Show hires CFG Scale slider',
                 )
                 .needs_reload_ui(),
             'hires_fix_tweaks_show_hr_prompt_mode':
                 shared.OptionInfo(
                     True,
-                    'Show hires Hires prompt mode',
+                    'Show hires prompt mode',
                 )
                 .info('only useful if "Hires fix: show hires prompt and negative prompt" is also enabled')
+                .needs_reload_ui(),
+            'hires_fix_tweaks_show_hr_batch_seed':
+                shared.OptionInfo(
+                    True,
+                    'Show hires batch count and seed',
+                )
                 .needs_reload_ui(),
             'hires_fix_tweaks_marker_char':
                 shared.OptionInfo(
