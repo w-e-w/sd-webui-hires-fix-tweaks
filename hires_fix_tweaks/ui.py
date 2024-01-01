@@ -1,6 +1,6 @@
 from modules import shared, ui_components, ui, errors, generation_parameters_copypaste
-from scripts.hires_fix_tweaks.hr_modules import hr_prompt_mode
-from scripts.hires_fix_tweaks.hr_modules import hr_batch_seed
+from hires_fix_tweaks.hr_modules import hr_prompt_mode
+from hires_fix_tweaks.hr_modules import hr_batch_seed
 # from scripts.hires_fix_tweaks.hr_modules import hr_cfg_scale
 import gradio as gr
 

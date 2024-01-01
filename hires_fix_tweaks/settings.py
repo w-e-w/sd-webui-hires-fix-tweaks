@@ -1,4 +1,4 @@
-from scripts.hires_fix_tweaks.hr_modules import hr_prompt_mode
+from hires_fix_tweaks.hr_modules import hr_prompt_mode
 from modules import shared
 import gradio as gr
 
