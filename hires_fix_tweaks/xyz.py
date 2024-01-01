@@ -1,4 +1,4 @@
-from modules import scripts, script_callbacks
+from modules import scripts
 
 
 def xyz_grid_axis():
@@ -11,8 +11,3 @@ def xyz_grid_axis():
                 ]
             )
             break
-
-
-script_callbacks.on_before_ui(xyz_grid_axis)
-# def xyz_support():
-
