@@ -2,6 +2,7 @@ from modules import errors, patches, processing, shared, script_callbacks
 from html.parser import HTMLParser
 import inspect
 import random
+import json
 
 
 class SimpleHTMLParser(HTMLParser):
@@ -27,44 +28,55 @@ def create_infotext_hijack(create_infotext, script_class):
 
             try:
                 hires_batch_seed = next((obj for obj in p.scripts.alwayson_scripts if isinstance(obj, script_class))).hires_batch_seed
-                # if use_main_prompt or getattr(p, 'force_write_hr_info_flag', None):
+
                 if use_main_prompt or hires_batch_seed.force_write_hr_info_flag:
+                    # params.txt and grid
+                    seeds = p.all_seeds
+                    subseeds = p.all_subseeds
+                    hr_seeds = hires_batch_seed.all_hr_seeds
+                    hr_subseeds = hires_batch_seed.all_hr_subseeds
                     index = 0
                 elif index is None:
-                    assert False, 'index is None'
-
-                # add_hr_seed_info(p, index)
-                # if hasattr(p, 'hr_seeds') and p.seeds[index] != p.hr_seeds[index]:
-                if p.seeds[index] != hires_batch_seed.hr_seeds[index]:
-                    # p.extra_generation_params['hr_seed'] = p.hr_seeds[index]
-                    p.extra_generation_params['Hires seed'] = hires_batch_seed.hr_seeds[index]
+                    # intermediate images
+                    assert False
                 else:
-                    p.extra_generation_params.pop('Hires seed', None)
+                    # hr batch results
+                    seeds = p.seeds
+                    subseeds = p.subseeds
+                    hr_seeds = hires_batch_seed.hr_seeds
+                    hr_subseeds = hires_batch_seed.hr_subseeds
 
-                if hires_batch_seed.hr_subseed_strength > 0:
-                    if hires_batch_seed.hr_subseeds[index] != p.subseeds[index] or p.subseed_strength == 0:
-                        p.extra_generation_params['Hires variation seed'] = hires_batch_seed.hr_subseeds[index]
-                    else:
-                        p.extra_generation_params.pop('Hires variation seed', None)
+                hires_seed_diff = [
+                    seeds[index] != hr_seeds[index],
+                    p.subseed_strength != hires_batch_seed.hr_subseed_strength,
+                    hires_batch_seed.hr_subseed_strength > 0 and subseeds[index] != hr_subseeds[index],
+                    p.seed_resize_from_w != hires_batch_seed.hr_seed_resize_from_w,
+                    p.seed_resize_from_h != hires_batch_seed.hr_seed_resize_from_h,
+                ]
+                if any(hires_seed_diff):
+                    hr_seed_info = {}
+                    if hires_seed_diff[0]:
+                        hr_seed_info['Seed'] = hr_seeds[index]
+
+                    if hires_batch_seed.hr_subseed_strength > 0:
+                        if p.subseed_strength <= 0 or subseeds[index] != hr_subseeds[index]:
+                            hr_seed_info['Subseed'] = hr_subseeds[index]
+                        hr_seed_info['Strength'] = hires_batch_seed.hr_subseed_strength
+
+                    if hires_batch_seed.hr_seed_resize_from_w > 0 and hires_batch_seed.hr_seed_resize_from_h > 0:
+                        hr_seed_info['Resize'] = [hires_batch_seed.hr_seed_resize_from_w, hires_batch_seed.hr_seed_resize_from_h]
+
+                    # store hr_seed_info as single quotes json string
+                    p.extra_generation_params['Hires seed info'] = json.dumps(hr_seed_info).replace('"', "'")
                 else:
-                    p.extra_generation_params.pop('Hires variation seed', None)
+                    assert False
 
-                if hires_batch_seed.hr_subseed_strength != p.subseed_strength:
-                    p.extra_generation_params['Hires variation seed strength'] = hires_batch_seed.hr_subseed_strength
-                else:
-                    p.extra_generation_params.pop('Hires variation seed strength', None)
+            except Exception:
+                # remove hr_seed_info
+                p.extra_generation_params.pop('Hires seed info', None)
 
-                if p.seed_resize_from_w != hires_batch_seed.hr_seed_resize_from_w or p.seed_resize_from_h != hires_batch_seed.hr_seed_resize_from_h:
-                    p.extra_generation_params['Hires seed resize from'] = f'{hires_batch_seed.hr_seed_resize_from_w}x{hires_batch_seed.hr_seed_resize_from_h}'
-
-            except Exception as e:
-                errors.report(f"not results: {e}")  # todo remove
-                for key in ['Hires seed', 'hr_subseed', 'hr seed resize from']:
-                    p.extra_generation_params.pop(key, None)
-
-        except Exception as e:
-            errors.report(f"create infotext hijack failed: {e}")
-            pass
+        except Exception:
+            errors.report(f"create infotext hijack failed {__name__}")
 
         finally:
             results = create_infotext(*args, **kwargs)
@@ -83,35 +95,11 @@ def hijack_create_infotext(script_class):
         script_callbacks.on_script_unloaded(undo_hijack)
     except RuntimeError as e:
         print(e)
-        pass
 
 
-def init_hr_seeds(self, p):
-    if isinstance(self.hr_seed, str):
-        try:
-            self.hr_seed = int(self.hr_seed)
-        except Exception:
-            self.hr_seed = 0
-
-    if self.hr_seed == 0:
-        self.all_hr_seeds = p.all_seeds
-        self.hr_seed_resize_from_w = p.seed_resize_from_w
-        self.hr_seed_resize_from_h = p.seed_resize_from_h
-    else:
-        seed = int(random.randrange(4294967294)) if self.hr_seed == -1 else self.hr_seed
-        self.all_hr_seeds = [int(seed) + (x if self.hr_subseed_strength == 0 else 0) for x in range(len(p.all_seeds))]
-
-    if isinstance(self.hr_subseed, str):
-        try:
-            self.hr_subseed = int(self.hr_subseed)
-        except Exception:
-            self.hr_subseed = 0
-
-    if self.hr_subseed == 0:
-        self.all_hr_subseeds = p.all_subseeds
-    else:
-        subseed = int(random.randrange(4294967294)) if self.hr_seed == -1 else self.hr_subseed
-        self.all_hr_subseeds = [int(subseed) + x for x in range(len(p.all_subseeds))]
+def pares_infotext(infotext, params):
+    if 'Hires seed info' in params:
+        params['Hires seed info'] = json.loads(params['Hires seed info'].replace("'", '"'))
 
 
 class HiresBatchSeed:
@@ -134,6 +122,11 @@ class HiresBatchSeed:
 
         self.all_hr_seeds = None
         self.all_hr_subseeds = None
+
+        self.hr_seeds = None
+        self.hr_subseeds = None
+        self.enable = None
+        self.force_write_hr_info_flag = None
 
     def setup(self, p, *args):
         # cleanup
@@ -161,14 +154,15 @@ class HiresBatchSeed:
                 self.hr_subseed_strength = args[8]
                 self.hr_seed_resize_from_w = args[9]
                 self.hr_seed_resize_from_h = args[10]
+                if self.hr_seed_resize_from_w <= 0 or self.hr_seed_resize_from_h <= 0:
+                    self.hr_seed_resize_from_w = -1
+                    self.hr_seed_resize_from_h = -1
             else:
                 self.hr_subseed = 0
                 self.hr_subseed_strength = 0
                 self.hr_seed_resize_from_w = -1
                 self.hr_seed_resize_from_h = -1
-            # if p.enable_hr:
-                # use to write hr info to params.txt
-                # p.force_write_hr_info_flag = True
+
             self.force_write_hr_info_flag = True
         else:
             # enable_hr_seed is false use first pass seed
@@ -178,7 +172,7 @@ class HiresBatchSeed:
             self.hr_seed_resize_from_w = p.seed_resize_from_w
             self.hr_seed_resize_from_h = p.seed_resize_from_h
 
-        init_hr_seeds(self, p)
+        self.init_hr_seeds(p)
 
         p.sample_hr_pass = self.sample_hr_pass_hijack(p, p.sample_hr_pass)
         p.sample = self.sample_hijack(p, p.sample)
@@ -207,10 +201,34 @@ class HiresBatchSeed:
         if not self.enable:
             return
 
-        def any_key_in_dict2(keys, d):
-            return any(map(d.__contains__, keys))
         processed.all_seeds = [j for i in range(0, len(processed.all_seeds), processed.batch_size) for j in processed.all_seeds[i:i + processed.batch_size] * self.hr_batch_count]
         processed.all_subseeds = [j for i in range(0, len(processed.all_subseeds), processed.batch_size) for j in processed.all_subseeds[i:i + processed.batch_size] * self.hr_batch_count]
+
+    def init_hr_seeds(self, p):
+        if isinstance(self.hr_seed, str):
+            try:
+                self.hr_seed = int(self.hr_seed)
+            except Exception:
+                self.hr_seed = 0
+
+        if self.hr_seed == 0:
+            self.all_hr_seeds = p.all_seeds
+        else:
+            seed = int(random.randrange(4294967294)) if self.hr_seed == -1 else self.hr_seed
+            self.all_hr_seeds = [int(seed) + (x if self.hr_subseed_strength == 0 else 0) for x in
+                                 range(len(p.all_seeds))]
+
+        if isinstance(self.hr_subseed, str):
+            try:
+                self.hr_subseed = int(self.hr_subseed)
+            except Exception:
+                self.hr_subseed = 0
+
+        if self.hr_subseed == 0:
+            self.all_hr_subseeds = p.all_subseeds
+        else:
+            subseed = int(random.randrange(4294967294)) if self.hr_seed == -1 else self.hr_subseed
+            self.all_hr_subseeds = [int(subseed) + x for x in range(len(p.all_subseeds))]
 
     def sample_hijack(self, p, sample):
         def wrapped_function(*args, **kwargs):

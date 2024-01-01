@@ -1,6 +1,6 @@
 from scripts.hires_fix_tweaks.hr_modules import hr_cfg_scale, hr_prompt_mode, hr_batch_seed
 from scripts.hires_fix_tweaks import ui, xyz, settings  # noqa: F401
-from modules import scripts
+from modules import scripts, script_callbacks
 
 
 class HiresFixTweaks(scripts.Script):
@@ -52,3 +52,4 @@ class HiresFixTweaks(scripts.Script):
 
 
 hr_batch_seed.hijack_create_infotext(HiresFixTweaks)
+script_callbacks.on_infotext_pasted(hr_batch_seed.pares_infotext)

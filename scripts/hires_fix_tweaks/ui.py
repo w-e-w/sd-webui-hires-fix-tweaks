@@ -145,14 +145,13 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
 
             self.script.infotext_fields.extend(
                 [
-                    (self.enable_hr_seed_e, lambda d: any(map(d.__contains__, ['Hires seed', 'Hires variation seed', 'Hires variation seed strength', 'Hires seed resize from-1']))),
-                    (self.hr_seed_e, lambda d: d.get('Hires seed', 0)),
-                    (self.hr_seed_checkbox_e, lambda d: any(map(d.__contains__, ['Hires variation seed', 'Hires variation seed strength', 'Hires seed resize from-1']))),
-                    (self.hr_subseed_e, lambda d: get_extra_seed_value(d, 'Hires variation seed', 'Variation seed')),
-                    (self.hr_subseed_strength_e, "Hires variation seed strength"),
-                    (self.hr_subseed_strength_e, lambda d: get_extra_seed_value(d, 'Hires variation seed strength', 'Variation seed strength')),
-                    (self.hr_seed_resize_from_w_e, lambda d: get_extra_seed_value(d, 'Hires seed resize from-1', 'resize from-1')),
-                    (self.hr_seed_resize_from_h_e, lambda d: get_extra_seed_value(d, 'Hires seed resize from-2', 'seed resize from-2')),
+                    (self.enable_hr_seed_e, lambda d: 'Hires seed info' in d),
+                    (self.hr_seed_e, lambda d: d.get('Hires seed info', {}).get('Seed', 0)),
+                    (self.hr_seed_checkbox_e, lambda d: any(map(d.get('Hires seed info', {}).__contains__, ['Strength', 'Resize']))),
+                    (self.hr_subseed_e, lambda d: d.get('Hires seed info', {}).get('Subseed', 0)),
+                    (self.hr_subseed_strength_e, lambda d: d.get('Hires seed info', {}).get('Strength', 0)),
+                    (self.hr_seed_resize_from_w_e, lambda d: d.get('Hires seed info', {}).get('Resize', [0, None])[0]),
+                    (self.hr_seed_resize_from_h_e, lambda d: d.get('Hires seed info', {}).get('Resize', [None, 0])[1]),
                 ]
             )
 
@@ -162,7 +161,13 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
         self.create_hr_seed_ui_done = True
 
 
+hr_seed_extras = ['Hires variation seed', 'Hires variation seed strength', 'Hires seed resize from-1']
+
+
 def get_extra_seed_value(d, hr_key, fp_key):
+    if 'Hires seed' in d:
+        pass
+
     if any(map(d.__contains__, ['Hires variation seed', 'Hires variation seed strength', 'Hires seed resize from-1'])):
         # hires seed extra check box enabled
         value = d.get(hr_key)
