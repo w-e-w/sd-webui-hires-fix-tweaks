@@ -98,13 +98,17 @@ def hijack_create_infotext(script_class):
 
 
 def pares_infotext(infotext, params):
-    if 'Hires seed info' in params:
+    try:
         params['Hires seed info'] = json.loads(params['Hires seed info'].replace("'", '"'))
+    except Exception:
+        pass
 
 
 class HiresBatchSeed:
     def __init__(self,  script):
         self.script = script
+
+        self.enable = None
 
         self.first_pass_seeds = None
         self.first_pass_subseeds = None
@@ -122,10 +126,8 @@ class HiresBatchSeed:
 
         self.all_hr_seeds = None
         self.all_hr_subseeds = None
-
         self.hr_seeds = None
         self.hr_subseeds = None
-        self.enable = None
         self.force_write_hr_info_flag = None
 
     def setup(self, p, *args):
@@ -138,12 +140,13 @@ class HiresBatchSeed:
         self.hr_seed_resize_from_h = None
 
     def process(self, p, *args):
-        # seed init
         self.hr_batch_count = args[3]  # multi hr seed
         self.enable_hr_seed = args[4]
 
         self.enable = p.enable_hr and (self.enable_hr_seed or self.hr_batch_count > 1)
+        # if hr_disabled or hr batch count <= 1 and hr seed is disabled then module is disabled
         if not self.enable:
+            # module is disabled
             return
 
         if self.enable_hr_seed:
@@ -180,14 +183,8 @@ class HiresBatchSeed:
     def process_batch(self, p, *args, **kwargs):
         if not self.enable:
             return
-
-        # p.hr_seeds = self.all_hr_seeds
         self.hr_seeds = self.all_hr_seeds
-        # p.hr_subseeds = self.all_hr_subseeds
         self.hr_subseeds = self.all_hr_subseeds
-        # p.hr_subseed_strength = self.hr_subseed_strength
-        # p.hr_seed_resize_from_w = self.hr_seed_resize_from_w
-        # p.hr_seed_resize_from_h = self.hr_seed_resize_from_h
 
     def postprocess_batch_list(self, p, pp, *args, **kwargs):
         if not self.enable:
@@ -200,7 +197,6 @@ class HiresBatchSeed:
     def postprocess(self, p, processed, *args):
         if not self.enable:
             return
-
         processed.all_seeds = [j for i in range(0, len(processed.all_seeds), processed.batch_size) for j in processed.all_seeds[i:i + processed.batch_size] * self.hr_batch_count]
         processed.all_subseeds = [j for i in range(0, len(processed.all_subseeds), processed.batch_size) for j in processed.all_subseeds[i:i + processed.batch_size] * self.hr_batch_count]
 
@@ -292,5 +288,4 @@ class HiresBatchSeed:
 
         return wrapped_function
 
-# todo fix subseed
 # todo fix progress bar

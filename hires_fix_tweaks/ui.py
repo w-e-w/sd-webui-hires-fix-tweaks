@@ -1,22 +1,22 @@
-from modules import shared, ui_components, ui, errors, generation_parameters_copypaste
 from hires_fix_tweaks.hr_modules import hr_prompt_mode
 from hires_fix_tweaks.hr_modules import hr_batch_seed
-# from scripts.hires_fix_tweaks.hr_modules import hr_cfg_scale
+from modules import generation_parameters_copypaste  # noqa generation_parameters_copypaste is the ailes to infotext_utils
+from modules import shared, ui_components, ui
 import gradio as gr
 
 
 def connect_reuse_seed(seed, reuse_seed: gr.Button, generation_info: gr.Textbox, is_subseed):
     def copy_seed(html_content: str, index):
-        res = 0
         infotext_skip_pasting = shared.opts.infotext_skip_pasting
         try:
             parser = hr_batch_seed.SimpleHTMLParser()
             parser.feed(html_content)
             shared.opts.infotext_skip_pasting = []
             parameters = generation_parameters_copypaste.parse_generation_parameters(parser.text_content)
-            res = int(parameters.get('hr_subseed' if is_subseed else 'hr_seed', res))
-        except Exception as _:
-            errors.report(f"Error parsing generation info: {html_content}")
+            hr_batch_seed.pares_infotext(None, parameters)
+            res = int(parameters['Hires seed info']['Subseed' if is_subseed else 'Seed'])
+        except Exception:
+            res = 0
         finally:
             shared.opts.infotext_skip_pasting = infotext_skip_pasting
         return [res, gr.update()]
@@ -159,19 +159,3 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
             self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_subseed_e, reuse_subseed, x.component, True), elem_id=f'html_info_{self.script.tabname}')
 
         self.create_hr_seed_ui_done = True
-
-
-hr_seed_extras = ['Hires variation seed', 'Hires variation seed strength', 'Hires seed resize from-1']
-
-
-def get_extra_seed_value(d, hr_key, fp_key):
-    if 'Hires seed' in d:
-        pass
-
-    if any(map(d.__contains__, ['Hires variation seed', 'Hires variation seed strength', 'Hires seed resize from-1'])):
-        # hires seed extra check box enabled
-        value = d.get(hr_key)
-        if value is None:
-            value = d.get(fp_key, 0)
-        return value
-    return 0
