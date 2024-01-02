@@ -263,6 +263,9 @@ class HiresBatchSeed:
                 hr_seeds_batch = self.all_hr_seeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
                 hr_subseeds_batch = self.all_hr_subseeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
 
+                # update progress bar, likely not using the correct method but seems to work good enough
+                shared.state.job_count += self.hr_batch_count - 1
+
                 for index in range(self.hr_batch_count):
                     p.seeds = [seed + index for seed in hr_seeds_batch] if self.hr_subseed_strength == 0 else hr_seeds_batch
                     self.hr_seeds.extend(p.seeds)
@@ -287,5 +290,3 @@ class HiresBatchSeed:
                 return samples
 
         return wrapped_function
-
-# todo fix progress bar
