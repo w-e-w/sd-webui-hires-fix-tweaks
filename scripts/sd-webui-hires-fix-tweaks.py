@@ -31,9 +31,6 @@ class HiresFixTweaks(scripts.Script):
     def process(self, p, *args):
         self.hires_batch_seed.process(p, *args)
 
-    def before_process(self, p, *args):
-        pass
-
     def process_batch(self, p, *args, **kwargs):
         self.hires_cfg_scale.process_batch(p, *args, **kwargs)
         self.hires_batch_seed.process_batch(p, *args, **kwargs)
