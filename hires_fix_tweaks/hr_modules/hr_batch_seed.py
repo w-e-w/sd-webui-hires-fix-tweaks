@@ -1,5 +1,6 @@
-from modules import errors, patches, processing, shared, script_callbacks
+from modules import errors, patches, processing, shared, script_callbacks, images
 from html.parser import HTMLParser
+from PIL import ImageChops
 import inspect
 import random
 import json
@@ -12,6 +13,9 @@ class SimpleHTMLParser(HTMLParser):
 
     def handle_data(self, data):
         self.text_content += data
+
+def same_img_pil(img1, img2):
+    return img1.size == img2.size and ImageChops.difference(img1, img2).getbbox() is None
 
 
 def create_infotext_hijack(create_infotext, script_class):
@@ -129,6 +133,7 @@ class HiresBatchSeed:
         self.hr_seeds = None
         self.hr_subseeds = None
         self.force_write_hr_info_flag = None
+        self.resize_image_cache = None
 
     def setup(self, p, *args):
         # cleanup
@@ -246,6 +251,8 @@ class HiresBatchSeed:
             # save original shared.opts.save_images_before_highres_fix setting to be restored later
             save_images_before_highres_fix = shared.opts.save_images_before_highres_fix
 
+            original_resize_image = images.resize_image
+
             self.first_pass_seeds = p.seeds
             self.first_pass_subseeds = p.subseeds
             self.first_pass_subseed_strength = p.subseed_strength
@@ -254,6 +261,8 @@ class HiresBatchSeed:
 
             samples = processing.DecodedSamples()
             try:
+                images.resize_image = self.resize_image_hijack(images.resize_image)
+
                 p.subseed_strength = self.hr_subseed_strength
                 p.seed_resize_from_w = self.hr_seed_resize_from_w
                 p.seed_resize_from_h = self.hr_seed_resize_from_h
@@ -265,6 +274,8 @@ class HiresBatchSeed:
 
                 # update progress bar, likely not using the correct method but seems to work good enough
                 shared.state.job_count += self.hr_batch_count - 1
+
+                self.resize_image_cache = []
 
                 for index in range(self.hr_batch_count):
                     p.seeds = [seed + index for seed in hr_seeds_batch] if self.hr_subseed_strength == 0 else hr_seeds_batch
@@ -278,7 +289,6 @@ class HiresBatchSeed:
                     # disable saving images before highres fix for all but the first batch
                     shared.opts.save_images_before_highres_fix = False
             finally:
-                #
                 p.seeds = self.first_pass_seeds
                 p.subseeds = self.first_pass_subseeds
                 p.subseed_strength = self.first_pass_subseed_strength
@@ -287,6 +297,27 @@ class HiresBatchSeed:
 
                 # restore original shared.opts.save_images_before_highres_fix setting
                 shared.opts.save_images_before_highres_fix = save_images_before_highres_fix
+                images.resize_image = original_resize_image
+                self.resize_image_cache = None
                 return samples
 
+        return wrapped_function
+
+    def resize_image_hijack(self, resize_image):
+        resize_image_signature = inspect.signature(resize_image)
+
+        def wrapped_function(*args, **kwargs):
+            if not self.enable:
+                return resize_image(*args, **kwargs)
+            bind_args = resize_image_signature.bind(*args, **kwargs).arguments
+            im = bind_args.pop('im')
+
+            bind_args_items = bind_args.items()
+            for cache_key, cache_im, cached_result in self.resize_image_cache:
+                if bind_args_items == cache_key and same_img_pil(im, cache_im):
+                    return cached_result
+
+            result = resize_image(*args, **kwargs)
+            self.resize_image_cache.append((bind_args_items, im, result))
+            return result
         return wrapped_function
