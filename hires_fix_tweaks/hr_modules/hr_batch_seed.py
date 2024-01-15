@@ -5,6 +5,8 @@ import inspect
 import random
 import json
 
+quote_swap = str.maketrans('\'"', '"\'')
+
 
 class SimpleHTMLParser(HTMLParser):
     def __init__(self):
@@ -70,8 +72,8 @@ def create_infotext_hijack(create_infotext, script_class):
                     if hires_batch_seed.hr_seed_resize_from_w > 0 and hires_batch_seed.hr_seed_resize_from_h > 0:
                         hr_seed_info['Resize'] = [hires_batch_seed.hr_seed_resize_from_w, hires_batch_seed.hr_seed_resize_from_h]
 
-                    # store hr_seed_info as single quotes json string
-                    p.extra_generation_params['Hires seed info'] = json.dumps(hr_seed_info).replace('"', "'")
+                    # store hr_seed_info as json string with double and single quotes swapped
+                    p.extra_generation_params['Hires seed info'] = json.dumps(hr_seed_info).translate(quote_swap)
                 else:
                     assert False
 
@@ -103,7 +105,7 @@ def hijack_create_infotext(script_class):
 
 def pares_infotext(infotext, params):
     try:
-        params['Hires seed info'] = json.loads(params['Hires seed info'].replace("'", '"'))
+        params['Hires seed info'] = json.loads(params['Hires seed info'].translate(quote_swap))
     except Exception:
         pass
 
