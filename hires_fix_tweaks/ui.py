@@ -20,7 +20,7 @@ def connect_reuse_seed(seed, reuse_seed: gr.Button, generation_info: gr.Textbox,
             shared.opts.infotext_skip_pasting = []
             gen_parameters = generation_parameters_copypaste.parse_generation_parameters(infotext)
             hr_batch_seed.pares_infotext(None, gen_parameters)
-            res = int(gen_parameters['Hires seed info']['Subseed' if is_subseed else 'Seed'])
+            res = int(gen_parameters['Hires seed']['Subseed' if is_subseed else 'Seed'])
         except Exception:
             res = 0
         finally:
@@ -161,13 +161,13 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
 
             self.script.infotext_fields.extend(
                 [
-                    (self.enable_hr_seed_e, lambda d: 'Hires seed info' in d),
-                    (self.hr_seed_e, lambda d: d.get('Hires seed info', {}).get('Seed', 0)),
-                    (self.hr_seed_checkbox_e, lambda d: any(map(d.get('Hires seed info', {}).__contains__, ['Strength', 'Resize']))),
-                    (self.hr_subseed_e, lambda d: d.get('Hires seed info', {}).get('Subseed', 0)),
-                    (self.hr_subseed_strength_e, lambda d: d.get('Hires seed info', {}).get('Strength', 0)),
-                    (self.hr_seed_resize_from_w_e, lambda d: d.get('Hires seed info', {}).get('Resize', [0, None])[0]),
-                    (self.hr_seed_resize_from_h_e, lambda d: d.get('Hires seed info', {}).get('Resize', [None, 0])[1]),
+                    (self.enable_hr_seed_e, lambda d: 'Hires seed' in d),
+                    (self.hr_seed_e, lambda d: d.get('Hires seed', {}).get('Seed', 0)),
+                    (self.hr_seed_checkbox_e, lambda d: any(map(d.get('Hires seed', {}).__contains__, ['Strength', 'Resize']))),
+                    (self.hr_subseed_e, lambda d: d.get('Hires seed', {}).get('Subseed', 0)),
+                    (self.hr_subseed_strength_e, lambda d: d.get('Hires seed', {}).get('Strength', 0)),
+                    (self.hr_seed_resize_from_w_e, lambda d: d.get('Hires seed', {}).get('Resize', [0, None])[0]),
+                    (self.hr_seed_resize_from_h_e, lambda d: d.get('Hires seed', {}).get('Resize', [None, 0])[1]),
                 ]
             )
 

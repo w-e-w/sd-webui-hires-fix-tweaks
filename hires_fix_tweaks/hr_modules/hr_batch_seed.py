@@ -64,13 +64,13 @@ def create_infotext_hijack(create_infotext, script_class):
                         hr_seed_info['Resize'] = [hires_batch_seed.hr_seed_resize_from_w, hires_batch_seed.hr_seed_resize_from_h]
 
                     # store hr_seed_info as json string with double and single quotes swapped
-                    p.extra_generation_params['Hires seed info'] = json.dumps(hr_seed_info).translate(quote_swap)
+                    p.extra_generation_params['Hires seed'] = json.dumps(hr_seed_info).translate(quote_swap)
                 else:
                     assert False
 
             except Exception:
                 # remove hr_seed_info
-                p.extra_generation_params.pop('Hires seed info', None)
+                p.extra_generation_params.pop('Hires seed', None)
 
         except Exception:
             errors.report(f"create infotext hijack failed {__name__}")
@@ -96,7 +96,7 @@ def hijack_create_infotext(script_class):
 
 def pares_infotext(infotext, params):
     try:
-        params['Hires seed info'] = json.loads(params['Hires seed info'].translate(quote_swap))
+        params['Hires seed'] = json.loads(params['Hires seed'].translate(quote_swap))
     except Exception:
         pass
 
