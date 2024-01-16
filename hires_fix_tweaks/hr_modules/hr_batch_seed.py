@@ -1,5 +1,4 @@
 from modules import errors, patches, processing, shared, script_callbacks, images
-from html.parser import HTMLParser
 from PIL import ImageChops
 import inspect
 import random
@@ -7,14 +6,6 @@ import json
 
 quote_swap = str.maketrans('\'"', '"\'')
 
-
-class SimpleHTMLParser(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.text_content = ''
-
-    def handle_data(self, data):
-        self.text_content += data
 
 def same_img_pil(img1, img2):
     return img1.size == img2.size and ImageChops.difference(img1, img2).getbbox() is None

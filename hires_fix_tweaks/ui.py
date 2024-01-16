@@ -3,6 +3,7 @@ from hires_fix_tweaks.hr_modules import hr_batch_seed
 from modules import generation_parameters_copypaste  # noqa: generation_parameters_copypaste is the ailes to infotext_utils
 from modules import shared, ui_components, ui
 import gradio as gr
+import json
 
 try:
     from modules.ui_components import InputAccordion
@@ -11,15 +12,15 @@ except ImportError:
 
 
 def connect_reuse_seed(seed, reuse_seed: gr.Button, generation_info: gr.Textbox, is_subseed):
-    def copy_seed(html_content: str, index):
+    def copy_seed(gen_info_string: str, index):
         infotext_skip_pasting = shared.opts.infotext_skip_pasting
         try:
-            parser = hr_batch_seed.SimpleHTMLParser()
-            parser.feed(html_content)
+            gen_info = json.loads(gen_info_string)
+            infotext = gen_info['infotexts'][index]
             shared.opts.infotext_skip_pasting = []
-            parameters = generation_parameters_copypaste.parse_generation_parameters(parser.text_content)
-            hr_batch_seed.pares_infotext(None, parameters)
-            res = int(parameters['Hires seed info']['Subseed' if is_subseed else 'Seed'])
+            gen_parameters = generation_parameters_copypaste.parse_generation_parameters(infotext)
+            hr_batch_seed.pares_infotext(None, gen_parameters)
+            res = int(gen_parameters['Hires seed info']['Subseed' if is_subseed else 'Seed'])
         except Exception:
             res = 0
         finally:
@@ -170,7 +171,7 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
                 ]
             )
 
-            self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_seed_e, reuse_seed, x.component, False), elem_id=f'html_info_{self.script.tabname}')
-            self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_subseed_e, reuse_subseed, x.component, True), elem_id=f'html_info_{self.script.tabname}')
+            self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_seed_e, reuse_seed, x.component, False), elem_id=f'generation_info_{self.script.tabname}')
+            self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_subseed_e, reuse_subseed, x.component, True), elem_id=f'generation_info_{self.script.tabname}')
 
         self.create_hr_seed_ui_done = True
