@@ -10,10 +10,6 @@ if you wish to use this
 
 ### Feel free to request features
 
-### known issues
- - Hires variation seed (subeseed) is partially broken
- - Progress bar is breaks when using hires batch count > 1
-
 ---
 
 the goal of this extension is to add more options and features to hires fix
@@ -21,17 +17,18 @@ the types of options and features that are less likely to be built into web UI i
 
 ## Features
 
-1. Hires pass CFG scale<br>set a different CFG scale for hires pass<br>this is particularly useful if you're working with LCM
+1. Hires pass CFG scale
+   - set a different CFG scale for hires pass<br>this is particularly useful if you're working with LCM, can also a cheap interesting effects
 
-2. Hires prompt mode
- - Default webui behavior:<br>if blank same as first pass else use hires prompt 
- - Append:<br>append hires prompt after first pass prompt
- - Prepend:<br>prepend hires prompt before first pass prompt
- - Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
+2. Hires Batch and Seed
+   - Generate multiple hires pass form first pass image
+   - Specify different seed for hires pass
 
-3. Hires Batch and Seed
- - Generate multiple hires pass form first pass image
- - Specify different seed for hires pass
+3. Hires prompt mode
+   - `Default`: Webui default behavior:<br>if blank same as first pass else use hires prompt 
+   - `Append`: Append hires prompt after first pass prompt
+   - `Prepend`: Prepend hires prompt before first pass prompt
+   - `Prompt S/R`: Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
 
 ### Prompt Search and Replace syntax
 When in Prompt Search and Replace mode the first pass prompt will be used as the base template to perform a search and replace on to create the hires prompt.
