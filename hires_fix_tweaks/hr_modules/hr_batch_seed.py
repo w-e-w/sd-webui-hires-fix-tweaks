@@ -240,7 +240,6 @@ class HiresBatchSeed:
             if not self.enable:
                 return sample(*args, **kwargs)
 
-            # p.force_write_hr_info_flag = False
             self.force_write_hr_info_flag = False
             result = sample(*args, **kwargs)
             return result
@@ -265,7 +264,9 @@ class HiresBatchSeed:
 
             samples = processing.DecodedSamples()
             try:
+                # hijack resize_image and init resize_image_cache
                 images.resize_image = self.resize_image_hijack(images.resize_image)
+                self.resize_image_cache = []
 
                 p.subseed_strength = self.hr_subseed_strength
                 p.seed_resize_from_w = self.hr_seed_resize_from_w
@@ -275,8 +276,6 @@ class HiresBatchSeed:
                 self.hr_subseeds = []
                 hr_seeds_batch = self.all_hr_seeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
                 hr_subseeds_batch = self.all_hr_subseeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
-
-                self.resize_image_cache = []
 
                 for index in range(self.hr_batch_count):
                     p.seeds = [seed + index for seed in hr_seeds_batch] if self.hr_subseed_strength == 0 else hr_seeds_batch
@@ -298,8 +297,11 @@ class HiresBatchSeed:
 
                 # restore original shared.opts.save_images_before_highres_fix setting
                 shared.opts.save_images_before_highres_fix = save_images_before_highres_fix
+
+                # restore original images.resize_image and clear resize_image_cache
                 images.resize_image = original_resize_image
                 self.resize_image_cache = None
+
                 return samples
 
         return wrapped_function
