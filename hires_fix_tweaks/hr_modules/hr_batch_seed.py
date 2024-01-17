@@ -182,12 +182,13 @@ class HiresBatchSeed:
         p.sample = self.sample_hijack(p, p.sample)
 
     def before_process_batch(self, p, *args, **kwargs):
-        if self.update_total_progress_bar is None:
-            additional_hr_batch_count = (self.hr_batch_count - 1) * p.n_iter
-            if shared.opts.multiple_tqdm and not shared.cmd_opts.disable_console_progressbars and shared.total_tqdm._tqdm and shared.total_tqdm._tqdm.total:
-                self.update_total_progress_bar = True
-                shared.total_tqdm.updateTotal(shared.total_tqdm._tqdm.total + additional_hr_batch_count * (p.hr_second_pass_steps or p.steps))
-            shared.state.job_count += additional_hr_batch_count
+        if not self.enable and self.update_total_progress_bar is None:
+            return
+        additional_hr_batch_count = (self.hr_batch_count - 1) * p.n_iter
+        if shared.opts.multiple_tqdm and not shared.cmd_opts.disable_console_progressbars and shared.total_tqdm._tqdm and shared.total_tqdm._tqdm.total:
+            self.update_total_progress_bar = True
+            shared.total_tqdm.updateTotal(shared.total_tqdm._tqdm.total + additional_hr_batch_count * (p.hr_second_pass_steps or p.steps))
+        shared.state.job_count += additional_hr_batch_count
 
     def process_batch(self, p, *args, **kwargs):
         if not self.enable:
