@@ -128,6 +128,8 @@ class HiresBatchSeed:
         self.force_write_hr_info_flag = None
         self.resize_image_cache = None
 
+        self.update_total_progress_bar = None
+
     def setup(self, p, *args):
         # cleanup
         self.force_write_hr_info_flag = None
@@ -136,6 +138,7 @@ class HiresBatchSeed:
         self.hr_subseeds = None
         self.hr_seed_resize_from_w = None
         self.hr_seed_resize_from_h = None
+        self.update_total_progress_bar = None
 
     def process(self, p, *args):
         self.hr_batch_count = args[3]  # multi hr seed
@@ -177,6 +180,11 @@ class HiresBatchSeed:
 
         p.sample_hr_pass = self.sample_hr_pass_hijack(p, p.sample_hr_pass)
         p.sample = self.sample_hijack(p, p.sample)
+
+    def before_process_batch(self, p, *args, **kwargs):
+        if self.update_total_progress_bar is None and shared.opts.multiple_tqdm and not shared.cmd_opts.disable_console_progressbars and shared.total_tqdm._tqdm and shared.total_tqdm._tqdm.total:
+            self.update_total_progress_bar = True
+            shared.total_tqdm.updateTotal(shared.total_tqdm._tqdm.total + p.n_iter * (self.hr_batch_count - 1) * (p.hr_second_pass_steps or p.steps))
 
     def process_batch(self, p, *args, **kwargs):
         if not self.enable:
