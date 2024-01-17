@@ -182,9 +182,12 @@ class HiresBatchSeed:
         p.sample = self.sample_hijack(p, p.sample)
 
     def before_process_batch(self, p, *args, **kwargs):
-        if self.update_total_progress_bar is None and shared.opts.multiple_tqdm and not shared.cmd_opts.disable_console_progressbars and shared.total_tqdm._tqdm and shared.total_tqdm._tqdm.total:
-            self.update_total_progress_bar = True
-            shared.total_tqdm.updateTotal(shared.total_tqdm._tqdm.total + p.n_iter * (self.hr_batch_count - 1) * (p.hr_second_pass_steps or p.steps))
+        if self.update_total_progress_bar is None:
+            additional_hr_batch_count = (self.hr_batch_count - 1) * p.n_iter
+            if shared.opts.multiple_tqdm and not shared.cmd_opts.disable_console_progressbars and shared.total_tqdm._tqdm and shared.total_tqdm._tqdm.total:
+                self.update_total_progress_bar = True
+                shared.total_tqdm.updateTotal(shared.total_tqdm._tqdm.total + additional_hr_batch_count * (p.hr_second_pass_steps or p.steps))
+            shared.state.job_count += additional_hr_batch_count
 
     def process_batch(self, p, *args, **kwargs):
         if not self.enable:
@@ -272,9 +275,6 @@ class HiresBatchSeed:
                 self.hr_subseeds = []
                 hr_seeds_batch = self.all_hr_seeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
                 hr_subseeds_batch = self.all_hr_subseeds[p.iteration * p.batch_size:(p.iteration + 1) * p.batch_size]
-
-                # update progress bar, likely not using the correct method but seems to work good enough
-                shared.state.job_count += self.hr_batch_count - 1
 
                 self.resize_image_cache = []
 
