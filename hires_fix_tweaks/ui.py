@@ -2,6 +2,7 @@ from hires_fix_tweaks.hr_modules import hr_prompt_mode
 from hires_fix_tweaks.hr_modules import hr_batch_seed
 from modules import generation_parameters_copypaste  # noqa: generation_parameters_copypaste is the ailes to infotext_utils
 from modules import shared, ui_components, ui
+from contextlib import nullcontext
 import gradio as gr
 import json
 
@@ -90,7 +91,7 @@ class UI:
         if self.create_ui_hr_prompt_mode_done:
             return
         gr_ui_element = getattr(gr, shared.opts.hires_fix_tweaks_hires_prompt_mode_ui_type, gr.Radio)
-        with gr.Row():
+        with gr.Row() if shared.opts.hires_fix_tweaks_show_hr_prompt_mode else nullcontext():
             self.hr_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires prompt mode', value='Default', elem_id=self.script.elem_id('hr_prompt_extend_mode'), visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
             self.hr_negative_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires negative prompt mode', value='Default', elem_id=self.script.elem_id('hr_negative_prompt_extend_mode'), visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
         if shared.opts.hires_fix_tweaks_show_hr_prompt_mode and not shared.opts.hires_fix_show_prompts:
@@ -107,7 +108,7 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
     def create_ui_batch_cfg(self, *args, **kwargs):
         if self.create_ui_cfg_done:
             return
-        with gr.Row(elem_id=self.script.elem_id("batch_cfg_row")):
+        with gr.Row(elem_id=self.script.elem_id("batch_cfg_row")) if shared.opts.hires_fix_tweaks_show_hr_cfg or shared.opts.hires_fix_tweaks_show_hr_batch_seed else nullcontext():
             self.hr_cfg_e = gr.Slider(value=0, minimum=0, maximum=30.0, step=0.5, label='Hires CFG Scale', elem_id=self.script.elem_id('hr_cfg_scale'), tooltip='0: same as first pass', visible=shared.opts.hires_fix_tweaks_show_hr_cfg)
             self.hr_batch_count_e = gr.Slider(label='Hires batch count', value=1, minimum=1, maximum=64, step=1, elem_id=self.script.elem_id('batch_count'), visible=shared.opts.hires_fix_tweaks_show_hr_batch_seed)
             self.script.infotext_fields.append((self.hr_cfg_e, lambda d: d.get('Hires CFG scale', 0)))
