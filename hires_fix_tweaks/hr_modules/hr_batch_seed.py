@@ -128,7 +128,7 @@ class HiresBatchSeed:
         self.force_write_hr_info_flag = None
         self.resize_image_cache = None
 
-        self.update_total_progress_bar = None
+        self.update_progress_bar = None
 
     def setup(self, p, *args):
         # cleanup
@@ -138,13 +138,14 @@ class HiresBatchSeed:
         self.hr_subseeds = None
         self.hr_seed_resize_from_w = None
         self.hr_seed_resize_from_h = None
-        self.update_total_progress_bar = None
 
     def process(self, p, *args):
         self.hr_batch_count = args[3]  # multi hr seed
         self.enable_hr_seed = args[4]
 
-        self.enable = p.enable_hr and (self.enable_hr_seed or self.hr_batch_count > 1)
+        self.update_progress_bar = self.hr_batch_count > 1
+
+        self.enable = p.enable_hr and (self.enable_hr_seed or self.update_progress_bar)
         # if hr_disabled or hr batch count <= 1 and hr seed is disabled then module is disabled
         if not self.enable:
             # module is disabled
@@ -182,13 +183,14 @@ class HiresBatchSeed:
         p.sample = self.sample_hijack(p, p.sample)
 
     def before_process_batch(self, p, *args, **kwargs):
-        if not self.enable and self.update_total_progress_bar is None:
+        if not self.enable and self.update_progress_bar:
             return
+        self.update_progress_bar = False
+        # known issue: progress may break when using scripts like xyz grid
         additional_hr_batch_count = (self.hr_batch_count - 1) * p.n_iter
-        if shared.opts.multiple_tqdm and not shared.cmd_opts.disable_console_progressbars and shared.total_tqdm._tqdm and shared.total_tqdm._tqdm.total:
-            self.update_total_progress_bar = True
-            shared.total_tqdm.updateTotal(shared.total_tqdm._tqdm.total + additional_hr_batch_count * (p.hr_second_pass_steps or p.steps))
         shared.state.job_count += additional_hr_batch_count
+        if shared.opts.multiple_tqdm and not shared.cmd_opts.disable_console_progressbars and shared.total_tqdm._tqdm and shared.total_tqdm._tqdm.total:
+            shared.total_tqdm.updateTotal(shared.total_tqdm._tqdm.total + additional_hr_batch_count * (p.hr_second_pass_steps or p.steps))
 
     def process_batch(self, p, *args, **kwargs):
         if not self.enable:
