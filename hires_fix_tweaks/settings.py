@@ -51,8 +51,21 @@ shared.options_templates.update(
                     'Radio', 'text', gr.Radio,
                     {'choices': ['Radio', 'Dropdown']},
                 )
-                .needs_reload_ui()
+                .needs_reload_ui(),
+        }
+    )
+)
 
+shared.options_templates.update(
+    shared.options_section(
+        ('saving-paths', "Paths for saving"),
+        {
+            "hires_fix_tweaks_outdir_hires_fix":
+                shared.OptionInfo(
+                    '','Output directory for hires. fix images',
+                    component_args=shared.hide_dirs
+                )
+                .info('leave blank to use same directory as txt2img, and will be ignored if "Output directory for images" is not empty. (hires-fix-tweaks extension)'),
         }
     )
 )

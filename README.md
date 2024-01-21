@@ -30,7 +30,12 @@ the types of options and features that are less likely to be built into web UI i
    - `Prepend`: Prepend hires prompt before first pass prompt
    - `Prompt S/R`: Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
 
-### Prompt Search and Replace syntax
+4. Hires output directory
+   - Specify a different output directory for hires pass
+   - `Settings > Paths for saving > Output directory for hires. fix images`
+
+
+## Prompt Search and Replace syntax
 When in Prompt Search and Replace mode the first pass prompt will be used as the base template to perform a search and replace on to create the hires prompt.
 
 the first pass can be any regular prompt, or you can insert `@insert_marker@` anywhere in the prompt to indicate where the hires prompt should be inserted.
