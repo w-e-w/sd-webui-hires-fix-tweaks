@@ -294,8 +294,7 @@ class HiresBatchSeed:
 
                     # check and restore hr_checkpoint incase model was switch by something like refine
                     if index < self.hr_batch_count - 1 and sd_models.model_data.sd_model.sd_model_checkpoint != (p.hr_checkpoint_info or sd_models.select_checkpoint()).filename:
-                        with sd_models.SkipWritingToConfig():
-                            sd_models.reload_model_weights(info=p.hr_checkpoint_info)
+                        sd_models.reload_model_weights(info=p.hr_checkpoint_info)
                         p.setup_conds()
 
             finally:
