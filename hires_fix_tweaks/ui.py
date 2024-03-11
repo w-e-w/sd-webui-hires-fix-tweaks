@@ -47,6 +47,7 @@ class UI:
         # hr prompt mode
         self.hr_prompt_mode_e = None
         self.hr_negative_prompt_mode_e = None
+        self.remove_fp_extra_networks_e = None
 
         # hr batch and seed
         self.hr_batch_count_e = None
@@ -64,6 +65,7 @@ class UI:
             self.hr_cfg_e,
 
             # hr prompt mode
+            self.remove_fp_extra_networks_e,
             self.hr_prompt_mode_e,
             self.hr_negative_prompt_mode_e,
 
@@ -75,7 +77,7 @@ class UI:
             self.hr_subseed_e,
             self.hr_subseed_strength_e,
             self.hr_seed_resize_from_w_e,
-            self.hr_seed_resize_from_h_e
+            self.hr_seed_resize_from_h_e,
         ]
 
     def fallback_create_ui(self):
@@ -91,14 +93,16 @@ class UI:
         if self.create_ui_hr_prompt_mode_done:
             return
         gr_ui_element = getattr(gr, shared.opts.hires_fix_tweaks_hires_prompt_mode_ui_type, gr.Radio)
-        with gr.Row() if shared.opts.hires_fix_tweaks_show_hr_prompt_mode else nullcontext():
-            self.hr_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires prompt mode', value='Default', elem_id=self.script.elem_id('hr_prompt_extend_mode'), visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
-            self.hr_negative_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires negative prompt mode', value='Default', elem_id=self.script.elem_id('hr_negative_prompt_extend_mode'), visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
+        with gr.Row() if (shared.opts.hires_fix_tweaks_show_hr_prompt_mode or shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks) else nullcontext():
+            self.remove_fp_extra_networks_e = gr.Checkbox(label='Remove First Pass Extra Networks', value=False, elem_id=self.script.elem_id('remove_fp_extra_networks'), elem_classes=['hr-tweaks-center-checkbox'], tooltip='Remove extra networks from first-pass prompt before constructing hires-prompt', visible=shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks)
+            self.hr_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires prompt mode', value='Default', elem_id=self.script.elem_id('hr_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
+            self.hr_negative_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires negative prompt mode', value='Default', elem_id=self.script.elem_id('hr_negative_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
         if shared.opts.hires_fix_tweaks_show_hr_prompt_mode and not shared.opts.hires_fix_show_prompts:
             with gr.Row():
                 gr.Markdown('''`Hires prompt mode` is only useful if `Settings` > `UI alternatives` > `Hires fix: show hires prompt and negative prompt` is enabled
 if you do not need this feature you can disable it in `Settings` > `Hires. fix tweaks` > `Show hires Hires prompt mode`''')
             self.script.infotext_fields.extend([
+                (self.remove_fp_extra_networks_e, False),
                 (self.hr_prompt_mode_e, lambda d: 'Default'),
                 (self.hr_negative_prompt_mode_e, lambda d: 'Default'),
             ])
@@ -113,7 +117,6 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
                 self.hr_cfg_e = gr.Slider(value=0, minimum=0, maximum=30.0, step=0.5, label='Hires CFG Scale', elem_id=self.script.elem_id('hr_cfg_scale'), tooltip='0: same as first pass', visible=shared.opts.hires_fix_tweaks_show_hr_cfg)
             with gr.Column(min_width=200) if shared.opts.hires_fix_tweaks_show_hr_batch_seed else nullcontext():
                 self.hr_batch_count_e = gr.Slider(label='Hires batch count', value=1, minimum=1, maximum=16, step=1, elem_id=self.script.elem_id('batch_count'), visible=shared.opts.hires_fix_tweaks_show_hr_batch_seed)
-
             self.script.infotext_fields.append((self.hr_cfg_e, lambda d: d.get('Hires CFG scale', 0)))
         self.create_ui_cfg_done = True
 

@@ -140,8 +140,8 @@ class HiresBatchSeed:
         self.hr_seed_resize_from_h = None
 
     def process(self, p, *args):
-        self.hr_batch_count = args[3]  # multi hr seed
-        self.enable_hr_seed = args[4]
+        self.hr_batch_count = args[4]  # multi hr seed
+        self.enable_hr_seed = args[5]
 
         self.update_progress_bar = self.hr_batch_count > 1
 
@@ -152,13 +152,13 @@ class HiresBatchSeed:
             return
 
         if self.enable_hr_seed:
-            self.hr_seed = args[5]
-            self.hr_seed_enable_extras = args[6]
+            self.hr_seed = args[6]
+            self.hr_seed_enable_extras = args[7]
             if self.hr_seed_enable_extras:
-                self.hr_subseed = args[7]
-                self.hr_subseed_strength = args[8]
-                self.hr_seed_resize_from_w = args[9]
-                self.hr_seed_resize_from_h = args[10]
+                self.hr_subseed = args[8]
+                self.hr_subseed_strength = args[9]
+                self.hr_seed_resize_from_w = args[10]
+                self.hr_seed_resize_from_h = args[11]
                 if self.hr_seed_resize_from_w <= 0 or self.hr_seed_resize_from_h <= 0:
                     self.hr_seed_resize_from_w = -1
                     self.hr_seed_resize_from_h = -1
@@ -223,8 +223,7 @@ class HiresBatchSeed:
             self.all_hr_seeds = p.all_seeds
         else:
             seed = int(random.randrange(4294967294)) if self.hr_seed == -1 else self.hr_seed
-            self.all_hr_seeds = [int(seed) + (x if self.hr_subseed_strength == 0 else 0) for x in
-                                 range(len(p.all_seeds))]
+            self.all_hr_seeds = [int(seed) + (x if self.hr_subseed_strength == 0 else 0) for x in range(len(p.all_seeds))]
 
         if isinstance(self.hr_subseed, str):
             try:

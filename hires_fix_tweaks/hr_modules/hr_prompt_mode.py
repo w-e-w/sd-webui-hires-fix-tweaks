@@ -1,3 +1,4 @@
+from modules import extra_networks
 from modules import shared
 import gradio as gr
 import re
@@ -22,21 +23,32 @@ def setup_regex():
     )
 
 
-def hires_prompt_mode_default(prompt, hr_prompt):
-    return prompt, hr_prompt
+def remove_extra_networks(prompt):
+    """return prompt with extra networks removed"""
+    return extra_networks.parse_prompts([prompt])[0][0]
 
 
-def hires_prompt_mode_append(prompt, hr_prompt):
+def hires_prompt_mode_default(prompt, hr_prompt, remove_fp_extra_networks=False):
+    """
+    if hr_prompt == '' and remove_fp_extra_networks:
+        remove extra networks from prompt and hr_prompt
+    else:
+        no change
+    """
+    return prompt, hr_prompt or remove_extra_networks(prompt) if remove_fp_extra_networks else prompt
+
+
+def hires_prompt_mode_append(prompt, hr_prompt, remove_fp_extra_networks=False):
     if hr_prompt.strip():
         separator = shared.opts.hires_fix_tweaks_append_separator.format(newline='\n')
-        hr_prompt = f'{prompt}{separator}{hr_prompt}'
+        hr_prompt = f'{remove_extra_networks(prompt) if remove_fp_extra_networks else prompt}{separator}{hr_prompt}'
     return prompt, hr_prompt
 
 
-def hires_prompt_mode_prepend(prompt, hr_prompt):
+def hires_prompt_mode_prepend(prompt, hr_prompt, remove_fp_extra_networks=False):
     if hr_prompt.strip():
         separator = shared.opts.hires_fix_tweaks_prepend_separator.format(newline='\n')
-        hr_prompt = f'{hr_prompt}{separator}{prompt}'
+        hr_prompt = f'{hr_prompt}{separator}{remove_extra_networks(prompt) if remove_fp_extra_networks else prompt}'
     return prompt, hr_prompt
 
 
@@ -46,7 +58,7 @@ search_replace_instructions_pattern: re.Pattern
 marker_char: str
 
 
-def hires_prompt_mode_search_replace(prompt, hr_prompt):
+def hires_prompt_mode_search_replace(prompt, hr_prompt, remove_fp_extra_networks=False):
     """
     parse hr_prompt as instructions for search and replace in prompt
 
@@ -69,7 +81,7 @@ def hires_prompt_mode_search_replace(prompt, hr_prompt):
     # even indexes are search value, odd indexes are replace value
     search_replace_instructions_list = search_replace_instructions_pattern.split(hr_prompt)[1:]
 
-    hr_prompt = prompt
+    hr_prompt = remove_extra_networks(prompt) if remove_fp_extra_networks else prompt
     for i in range(0, len(search_replace_instructions_list), 2):
         # restore escaped @
         key = search_replace_instructions_list[i].replace(marker_char * 2, marker_char)
@@ -99,5 +111,7 @@ hires_prompt_mode_functions = {
 
 
 def setup(p, *args):
-    p.prompt, p.hr_prompt = hires_prompt_mode_functions.get(args[1], hires_prompt_mode_default)(p.prompt, p.hr_prompt)
-    p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_functions.get(args[2],hires_prompt_mode_default)(p.negative_prompt, p.hr_negative_prompt)
+    if hires_prompt_mode_f := hires_prompt_mode_functions.get(args[2]):
+        p.prompt, p.hr_prompt = hires_prompt_mode_f(p.prompt, p.hr_prompt, args[1])
+    if hires_negative_prompt_mode_f := hires_prompt_mode_functions.get(args[3]):
+        p.negative_prompt, p.hr_negative_prompt = hires_negative_prompt_mode_f(p.negative_prompt, p.hr_negative_prompt)

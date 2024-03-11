@@ -25,18 +25,24 @@ shared.options_templates.update(
                     'Show hires CFG Scale slider',
                 )
                 .needs_reload_ui(),
+            'hires_fix_tweaks_show_hr_batch_seed':
+                shared.OptionInfo(
+                    True,
+                    'Show hires batch count and seed',
+                )
+                .needs_reload_ui(),
+            'hires_fix_tweaks_show_hr_remove_fp_extra_networks':
+                shared.OptionInfo(
+                    True,
+                    'Show "Remove First Pass Extra Networks" checkbox',
+                )
+                .needs_reload_ui(),
             'hires_fix_tweaks_show_hr_prompt_mode':
                 shared.OptionInfo(
                     True,
                     'Show hires prompt mode',
                 )
                 .info('only useful if "Hires fix: show hires prompt and negative prompt" is also enabled')
-                .needs_reload_ui(),
-            'hires_fix_tweaks_show_hr_batch_seed':
-                shared.OptionInfo(
-                    True,
-                    'Show hires batch count and seed',
-                )
                 .needs_reload_ui(),
             'hires_fix_tweaks_marker_char':
                 shared.OptionInfo(
@@ -48,7 +54,7 @@ shared.options_templates.update(
                 .info('default: "@", can be changed other characters if the default is causing issues, must be a single uncommon character'),
             'hires_fix_tweaks_hires_prompt_mode_ui_type':
                 shared.OptionInfo(
-                    'Radio', 'text', gr.Radio,
+                    'Radio', 'Hires Prompt mode menu style', gr.Radio,
                     {'choices': ['Radio', 'Dropdown']},
                 )
                 .needs_reload_ui(),
@@ -62,7 +68,7 @@ shared.options_templates.update(
         {
             "hires_fix_tweaks_outdir_hires_fix":
                 shared.OptionInfo(
-                    '','Output directory for hires. fix images',
+                    '', 'Output directory for hires. fix images',
                     component_args=shared.hide_dirs
                 )
                 .info('leave blank to use same directory as txt2img, and will be ignored if "Output directory for images" is not empty. (hires-fix-tweaks extension)'),
