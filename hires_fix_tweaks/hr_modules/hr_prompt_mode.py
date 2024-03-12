@@ -111,7 +111,5 @@ hires_prompt_mode_functions = {
 
 
 def setup(p, *args):
-    if hires_prompt_mode_f := hires_prompt_mode_functions.get(args[2]):
-        p.prompt, p.hr_prompt = hires_prompt_mode_f(p.prompt, p.hr_prompt, args[1])
-    if hires_negative_prompt_mode_f := hires_prompt_mode_functions.get(args[3]):
-        p.negative_prompt, p.hr_negative_prompt = hires_negative_prompt_mode_f(p.negative_prompt, p.hr_negative_prompt)
+    p.prompt, p.hr_prompt = hires_prompt_mode_functions.get(args[2], hires_prompt_mode_default)(p.prompt, p.hr_prompt, args[1])
+    p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_functions.get(args[3], hires_prompt_mode_default)(p.negative_prompt, p.hr_negative_prompt)
