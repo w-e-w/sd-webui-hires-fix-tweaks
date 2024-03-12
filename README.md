@@ -6,7 +6,7 @@ Add additional options and features to hires fix for [Stable Diffusion web UI](h
 ## Features
 
 1. Hires pass CFG scale
-   - set a different CFG scale for hires pass<br>this is particularly useful if you're working with LCM, can also a cheap interesting effects
+   - Set a different CFG scale for hires pass<br>this is particularly useful if you're working with LCM, can also a achieve interesting effects
 
 2. Hires Batch and Seed
    - Generate multiple hires pass form first pass image
@@ -14,20 +14,20 @@ Add additional options and features to hires fix for [Stable Diffusion web UI](h
 
 3. Hires prompt mode
    1. `Default`: Webui default behavior:<br>if blank same as first pass else use hires prompt
-      - if the Hires prompt box is not blank, it will be used as the hires prompt
    2. `Append`: Append hires prompt after first pass prompt
    3. `Prepend`: Prepend hires prompt before first pass prompt
    4. `Prompt S/R`: Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
    <br><br>
    - `Remove First Pass Extra Networks`: When check will remove extra networks from first pass prompt before creating hires prompt
-
 4. Hires output directory
    - Specify a different output directory for hires pass
    - `Settings > Paths for saving > Output directory for hires. fix images`
 
 
 ## Remove First Pass Extra Networks
-When `Remove First Pass Extra Networks` is checked, all extra networks in prompt (every thin matching `<xxxx:extra-network-name:weight>`) will be removed from prompt before processing hires prompt
+- `Remove First Pass Extra Networks` operates by removing all extra networks in prompt (every thin matching `<xxxx:extra-network-name:weight>`) in the first pass prompt, this means it only works with `LoRA` and `Hypernetworks` and dose not work with `Textual Inversion Embeddings` or if the extra networks are added by later by other means such as `Setting` or `Styles`.
+- As it only touches the first pass prompt it will not have an affect if `Hires prompt mode` is `Default` and the hires prompt is not blank, as the user input hires prompt will take precedence. 
+- - The default behavior of the webui is If `hires prompt is not specfied (when blank)` then `use the same first pass prompt for hires pass` else `use the user input hires prompt`
 
 Usage case example:
 1. You wish the hires prompt to be the same as the first pass prompt but without the extra networks
@@ -95,6 +95,4 @@ like so
 ```
 
 ## Notes
-
 - `Remove First Pass Extra Networks` and `Hires prompt mode` are performed very early in the image generation pipline.<br>it is processed before `Styles` is applied to prompts, which means that  it will not affect the prompt added by `Style`.<br>it should only affect the style you can visibly see in the prompt input box.
- 
