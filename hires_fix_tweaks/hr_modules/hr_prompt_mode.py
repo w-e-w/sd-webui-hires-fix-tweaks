@@ -39,14 +39,14 @@ def hires_prompt_mode_default(prompt, hr_prompt, remove_fp_extra_networks=False)
 
 
 def hires_prompt_mode_append(prompt, hr_prompt, remove_fp_extra_networks=False):
-    if hr_prompt.strip():
+    if remove_fp_extra_networks or hr_prompt.strip():
         separator = shared.opts.hires_fix_tweaks_append_separator.format(newline='\n')
         hr_prompt = f'{remove_extra_networks(prompt) if remove_fp_extra_networks else prompt}{separator}{hr_prompt}'
     return prompt, hr_prompt
 
 
 def hires_prompt_mode_prepend(prompt, hr_prompt, remove_fp_extra_networks=False):
-    if hr_prompt.strip():
+    if remove_fp_extra_networks or hr_prompt.strip():
         separator = shared.opts.hires_fix_tweaks_prepend_separator.format(newline='\n')
         hr_prompt = f'{hr_prompt}{separator}{remove_extra_networks(prompt) if remove_fp_extra_networks else prompt}'
     return prompt, hr_prompt
@@ -78,7 +78,7 @@ def hires_prompt_mode_search_replace(prompt, hr_prompt, remove_fp_extra_networks
         prompt is not modified
     """
     # parse hr_prompt as instructions for search and replace
-    # even indexes are search value, odd indexes are replace value
+    # even indexes are search value, odd indexes are replacing value
     search_replace_instructions_list = search_replace_instructions_pattern.split(hr_prompt)[1:]
 
     hr_prompt = remove_extra_networks(prompt) if remove_fp_extra_networks else prompt
