@@ -159,10 +159,10 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
                     self.hr_seed_resize_from_w_e = gr.Slider(minimum=0, maximum=2048, step=8, label="Hires resize seed from width", value=0, elem_id=self.script.elem_id("seed_resize_from_w"))
                     self.hr_seed_resize_from_h_e = gr.Slider(minimum=0, maximum=2048, step=8, label="Hires resize seed from height", value=0, elem_id=self.script.elem_id("seed_resize_from_h"))
 
-            same_seed.click(fn=None, _js="function(){setInputToValue('" + self.script.elem_id("seed") + "', '0')}", show_progress=False, inputs=[], outputs=[])
-            same_seed_subseed.click(fn=None, _js="function(){setInputToValue('" + self.script.elem_id("subseed") + "', '0')}", show_progress=False, inputs=[], outputs=[])
-            random_seed.click(fn=None, _js="function(){setRandomSeed('" + self.script.elem_id("seed") + "')}", show_progress=False, inputs=[], outputs=[])
-            random_subseed.click(fn=None, _js="function(){setRandomSeed('" + self.script.elem_id("subseed") + "')}", show_progress=False, inputs=[], outputs=[])
+            same_seed.click(fn=None, _js="function(){setInputToValueHrTweaks('" + self.script.elem_id("seed") + "', '0')}", show_progress=False)
+            same_seed_subseed.click(fn=None, _js="function(){setInputToValueHrTweaks('" + self.script.elem_id("subseed") + "', '0')}", show_progress=False)
+            random_seed.click(fn=None, _js="function(){setRandomSeed('" + self.script.elem_id("seed") + "')}", show_progress=False)
+            random_subseed.click(fn=None, _js="function(){setRandomSeed('" + self.script.elem_id("subseed") + "')}", show_progress=False)
 
             self.hr_seed_checkbox_e.change(lambda x: gr.update(visible=x), show_progress=False, inputs=[self.hr_seed_checkbox_e], outputs=[seed_extras])
 
