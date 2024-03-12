@@ -87,7 +87,7 @@ def hires_prompt_mode_search_replace(prompt, hr_prompt, remove_fp_extra_networks
         key = search_replace_instructions_list[i].replace(marker_char * 2, marker_char)
         insert_key = f'{marker_char}{key}{marker_char}'
 
-        # restore escaped @ and remove 1 leading and trailing newline
+        # restore escaped @ and removes 1 leading and trailing newline
         replace = search_replace_instructions_list[i + 1].replace(marker_char * 2, marker_char)
         replace = one_leading_and_trailing_newline_pattern.search(replace).group(1)
 
