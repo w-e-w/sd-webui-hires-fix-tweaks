@@ -1,19 +1,7 @@
-# sd-webui-hires-fix-tweaks
+# sd webui hires fix tweaks
 
-### This is still in development and not meant to be used by users
-normally this repo would be set as private at this stage but due to some reasons I opened it up to the public
-
-if you wish to use this
-- expect things to break and change without warning
-
-- expect me to do random things such as force push commit history change the repo name etc
-
-### Feel free to request features
-
----
-
-the goal of this extension is to add more options and features to hires fix
-the types of options and features that are less likely to be built into web UI itself as they only apply to certain workflows
+Add additional options and features to hires fix for [Stable Diffusion web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
+![screenshot](screenshot.png)
 
 ## Features
 
@@ -25,15 +13,26 @@ the types of options and features that are less likely to be built into web UI i
    - Specify different seed for hires pass
 
 3. Hires prompt mode
-   - `Default`: Webui default behavior:<br>if blank same as first pass else use hires prompt 
-   - `Append`: Append hires prompt after first pass prompt
-   - `Prepend`: Prepend hires prompt before first pass prompt
-   - `Prompt S/R`: Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
+   1. `Default`: Webui default behavior:<br>if blank same as first pass else use hires prompt
+      - if the Hires prompt box is not blank, it will be used as the hires prompt
+   2. `Append`: Append hires prompt after first pass prompt
+   3. `Prepend`: Prepend hires prompt before first pass prompt
+   4. `Prompt S/R`: Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
+   <br><br>
+   - `Remove First Pass Extra Networks`: When check will remove extra networks from first pass prompt before creating hires prompt
 
 4. Hires output directory
    - Specify a different output directory for hires pass
    - `Settings > Paths for saving > Output directory for hires. fix images`
 
+
+## Remove First Pass Extra Networks
+When `Remove First Pass Extra Networks` is checked, all extra networks in prompt (every thin matching `<xxxx:extra-network-name:weight>`) will be removed from prompt before processing hires prompt
+
+Usage case example:
+1. You wish the hires prompt to be the same as the first pass prompt but without the extra networks
+2. Combining with other `Hires prompt mode` such as `Append` to change the extra networks used during hires pass
+> Note: the `Default` Hires prompt mode has priority over `Remove First Pass Extra Networks`, in other words if `Default` is selected `Remove First Pass Extra Networks` will be ignored if hires prompt is not blank
 
 ## Prompt Search and Replace syntax
 When in Prompt Search and Replace mode the first pass prompt will be used as the base template to perform a search and replace on to create the hires prompt.
