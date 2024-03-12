@@ -93,3 +93,8 @@ replace replacement can
 be multi-line
 like so
 ```
+
+## Notes
+
+- `Remove First Pass Extra Networks` and `Hires prompt mode` are performed very early in the image generation pipline.<br>it is processed before `Styles` is applied to prompts, which means that  it will not affect the prompt added by `Style`.<br>it should only affect the style you can visibly see in the prompt input box.
+ 
