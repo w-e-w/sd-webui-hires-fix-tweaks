@@ -35,7 +35,7 @@ def hires_prompt_mode_default(prompt, hr_prompt, remove_fp_extra_networks=False)
     else:
         no change
     """
-    return prompt, hr_prompt or remove_extra_networks(prompt) if remove_fp_extra_networks else prompt
+    return prompt, hr_prompt or (remove_extra_networks(prompt) if remove_fp_extra_networks else prompt)
 
 
 def hires_prompt_mode_append(prompt, hr_prompt, remove_fp_extra_networks=False):
