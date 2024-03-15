@@ -110,6 +110,33 @@ hires_prompt_mode_functions = {
 }
 
 
+def get_prompt(prompt_obj, index):
+    return prompt_obj[index] if isinstance(prompt_obj, list) else prompt_obj
+
+
 def setup(p, *args):
-    p.prompt, p.hr_prompt = hires_prompt_mode_functions.get(args[2], hires_prompt_mode_default)(p.prompt, p.hr_prompt, args[1])
-    p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_functions.get(args[3], hires_prompt_mode_default)(p.negative_prompt, p.hr_negative_prompt)
+    remove_fp_extra_networks, hires_prompt_mode, hires_negative_prompt_mode = args[1:4]
+
+    if remove_fp_extra_networks or hires_prompt_mode != 'Default':
+        hires_prompt_mode_function = hires_prompt_mode_functions.get(hires_prompt_mode, hires_prompt_mode_default)
+        if any(isinstance(var, list) for var in [p.prompt, p.hr_prompt]):
+            prompt_list, hr_prompt_list = [], []
+            for i in range(len(p.prompt if isinstance(p.prompt, list) else p.hr_prompt)):
+                prompt, hr_prompt = hires_prompt_mode_function(get_prompt(p.prompt, i), get_prompt(p.hr_prompt, i), args[1])
+                prompt_list.append(prompt)
+                hr_prompt_list.append(hr_prompt)
+            p.prompt, p.hr_prompt = prompt_list, hr_prompt_list
+        else:
+            p.prompt, p.hr_prompt = hires_prompt_mode_function(p.prompt, p.hr_prompt, args[1])
+
+    if hires_negative_prompt_mode != 'Default':
+        hires_prompt_mode_function = hires_prompt_mode_functions.get(hires_negative_prompt_mode, hires_prompt_mode_default)
+        if any(isinstance(var, list) for var in [p.negative_prompt, p.hr_negative_prompt]):
+            negative_prompt_list, hr_negative_prompt_list = [], []
+            for i in range(len(p.negative_prompt if isinstance(p.negative_prompt, list) else p.hr_negative_prompt)):
+                negative_prompt, hr_negative_prompt = hires_prompt_mode_function(get_prompt(p.negative_prompt, i), get_prompt(p.hr_negative_prompt, i))
+                negative_prompt_list.append(negative_prompt)
+                hr_negative_prompt_list.append(hr_negative_prompt)
+            p.negative_prompt, p.hr_negative_prompt = negative_prompt_list, hr_negative_prompt_list
+        else:
+            p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_function(p.negative_prompt, p.hr_negative_prompt)
