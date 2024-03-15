@@ -12,7 +12,8 @@ Add additional options and features to hires fix for [Stable Diffusion web UI](h
    - Generate multiple hires pass form first pass image
    - Specify different seed for hires pass
 
-3. Hires prompt mode
+3. Hires prompt mode and Remove First Pass Extra Networks
+   - Changes how the hires prompt is created based on the first pass prompt
    1. `Default`: Webui default behavior:<br>if blank same as first pass else use hires prompt
    2. `Append`: Append hires prompt after first pass prompt
    3. `Prepend`: Prepend hires prompt before first pass prompt
@@ -23,12 +24,10 @@ Add additional options and features to hires fix for [Stable Diffusion web UI](h
    - Specify a different output directory for hires pass
    - `Settings > Paths for saving > Output directory for hires. fix images`
 
-
 ## Remove First Pass Extra Networks
 - `Remove First Pass Extra Networks` operates by removing all extra networks in prompt (every thin matching `<xxxx:extra-network-name:weight>`) in the first pass prompt, this means it only works with `LoRA` and `Hypernetworks` and dose not work with `Textual Inversion Embeddings` or if the extra networks are added by later by other means such as `Setting` or `Styles`.
 - As it only touches the first pass prompt it will not have an affect if `Hires prompt mode` is `Default` and the hires prompt is not blank, as the user input hires prompt will take precedence. 
-- - The default behavior of the webui is If `hires prompt is not specfied (when blank)` then `use the same first pass prompt for hires pass` else `use the user input hires prompt`
-
+- - The default behavior of the webui is If `hires prompt is not specfied (when blank)` then `use the same first pass prompt for hires pass` else `use the user input hires prompt`. if the first pass prompt is not use the `Remove First Pass Extra Networks` will not have an affect.
 Usage case example:
 1. You wish the hires prompt to be the same as the first pass prompt but without the extra networks
 2. Combining with other `Hires prompt mode` such as `Append` to change the extra networks used during hires pass
@@ -52,7 +51,8 @@ like so
 the hires prompt is used as instructions for the search and replace
 each instruction is entry starts with a `key_word` enclosed by `@` at the start of the line, everything after this until the next `@key_word@` is the replacement or inserted prompt
 
-example hires prompt (instructions)
+Example hires prompt (instructions)
+
 ```
 @insert_marker@ insert something here
 @replace prompt@ replace something here
@@ -83,7 +83,8 @@ multil-ine
 like so
 ```
 
-resulting hires prompt
+Resulting hires prompt
+
 ```
 this is an example prompt  insert something here
 , and  replace something here
@@ -94,5 +95,11 @@ be multi-line
 like so
 ```
 
-## Notes
-- `Remove First Pass Extra Networks` and `Hires prompt mode` are performed very early in the image generation pipline.<br>it is processed before `Styles` is applied to prompts, which means that  it will not affect the prompt added by `Style`.<br>it should only affect the style you can visibly see in the prompt input box.
+### Notes
+- `Remove First Pass Extra Networks` and `Hires prompt mode` are performed very early in the image generation pipline, even before `Styles` is applied to prompts, which means that it will not affect the prompt added by `Styles`. it should only affect the style you can visibly see in the prompt input box.
+- If you would like to sugest a feature feel free to open an issue or pull request
+- I position this extension as "Workflow improvement" tool, in general, this extensions functionality should be possible to do without this extension, even if might require multiple steps
+- - `Hires pass CFG scale` and `Hires Batch and Seed` can be archived by manually performing img2img on the txt2img output.
+- - `Hires prompt mode` and `Remove First Pass Extra Networks` can be archived by manually editing the prompt before generating the hires pass.
+- - `Hires output directory` can be archived by manually changing the output directory in the webui settings
+- 
