@@ -97,9 +97,9 @@ like so
 
 ### Notes
 - `Remove First Pass Extra Networks` and `Hires prompt mode` are performed very early in the image generation pipline, even before `Styles` is applied to prompts, which means that it will not affect the prompt added by `Styles`. it should only affect the style you can visibly see in the prompt input box.
-- If you would like to sugest a feature feel free to open an issue or pull request
+- - Features added can be hidden in settings if you do use them
+- If you would like to suggest a feature feel free to open an issue or pull request
 - I position this extension as "Workflow improvement" tool, in general, this extensions functionality should be possible to do without this extension, even if might require multiple steps
 - - `Hires pass CFG scale` and `Hires Batch and Seed` can be archived by manually performing img2img on the txt2img output.
 - - `Hires prompt mode` and `Remove First Pass Extra Networks` can be archived by manually editing the prompt before generating the hires pass.
 - - `Hires output directory` can be archived by manually changing the output directory in the webui settings
-- 
