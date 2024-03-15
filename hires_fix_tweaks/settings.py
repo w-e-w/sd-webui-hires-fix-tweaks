@@ -42,7 +42,7 @@ shared.options_templates.update(
                     True,
                     'Show hires prompt mode',
                 )
-                .info('only useful if "Hires fix: show hires prompt and negative prompt" is also enabled')
+                .info('only usable if "Hires fix: show hires prompt and negative prompt" is also enabled')
                 .needs_reload_ui(),
             'hires_fix_tweaks_marker_char':
                 shared.OptionInfo(

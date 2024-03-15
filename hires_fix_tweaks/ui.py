@@ -99,7 +99,7 @@ class UI:
             self.hr_negative_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires negative prompt mode', value='Default', elem_id=self.script.elem_id('hr_negative_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
         if shared.opts.hires_fix_tweaks_show_hr_prompt_mode and not shared.opts.hires_fix_show_prompts:
             with gr.Row():
-                gr.Markdown('''`Hires prompt mode` is only useful if `Settings` > `UI alternatives` > `Hires fix: show hires prompt and negative prompt` is enabled
+                gr.Markdown('''`Hires prompt mode` is only usable if `Settings` > `UI alternatives` > `Hires fix: show hires prompt and negative prompt` is enabled
 if you do not need this feature you can disable it in `Settings` > `Hires. fix tweaks` > `Show hires Hires prompt mode`''')
             self.script.infotext_fields.extend([
                 (self.remove_fp_extra_networks_e, False),
