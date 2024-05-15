@@ -94,7 +94,7 @@ def hijack_create_infotext(script_class):
         pass
 
 
-def pares_infotext(infotext, params):
+def parse_infotext(infotext, params):
     try:
         params['Hires seed'] = json.loads(params['Hires seed'].translate(quote_swap))
     except Exception:

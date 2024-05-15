@@ -20,7 +20,7 @@ def connect_reuse_seed(seed, reuse_seed: gr.Button, generation_info: gr.Textbox,
             infotext = gen_info['infotexts'][index]
             shared.opts.infotext_skip_pasting = []
             gen_parameters = generation_parameters_copypaste.parse_generation_parameters(infotext)
-            hr_batch_seed.pares_infotext(None, gen_parameters)
+            hr_batch_seed.parse_infotext(None, gen_parameters)
             res = int(gen_parameters['Hires seed']['Subseed' if is_subseed else 'Seed'])
         except Exception:
             res = 0
