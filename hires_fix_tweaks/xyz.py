@@ -7,7 +7,7 @@ def xyz_grid_axis():
             xyz_grid = data.module
             xyz_grid.axis_options.extend(
                 [
-                    xyz_grid.AxisOptionTxt2Img('Hires CFG Scale', float, xyz_grid.apply_field('hr_cfg_scale')),
+                    xyz_grid.AxisOptionTxt2Img('[Hires fix tweaks] Hires CFG Scale', float, xyz_grid.apply_field('hr_cfg_scale')),
                 ]
             )
             break
