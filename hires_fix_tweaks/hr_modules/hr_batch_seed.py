@@ -183,7 +183,7 @@ class HiresBatchSeed:
         p.sample = self.sample_hijack(p, p.sample)
 
     def before_process_batch(self, p, *args, **kwargs):
-        if not self.enable and self.update_progress_bar:
+        if not (self.enable and self.update_progress_bar):
             return
         self.update_progress_bar = False
         # known issue: progress may break when using scripts like xyz grid
