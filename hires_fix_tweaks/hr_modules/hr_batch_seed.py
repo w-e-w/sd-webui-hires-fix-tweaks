@@ -129,6 +129,10 @@ class HiresBatchSeed:
         self.resize_image_cache = None
 
         self.update_progress_bar = None
+        self.patch_get_hr_prompt = None
+
+        self.original_get_hr_prompt = None
+        self.original_get_hr_negative_prompt = None
 
     def setup(self, p, *args):
         # cleanup
@@ -138,12 +142,14 @@ class HiresBatchSeed:
         self.hr_subseeds = None
         self.hr_seed_resize_from_w = None
         self.hr_seed_resize_from_h = None
+        self.original_get_hr_prompt = None
+        self.original_get_hr_negative_prompt = None
 
     def process(self, p, *args):
         self.hr_batch_count = args[4]  # multi hr seed
         self.enable_hr_seed = args[5]
 
-        self.update_progress_bar = self.hr_batch_count > 1
+        self.update_progress_bar = self.patch_get_hr_prompt = self.hr_batch_count > 1
 
         self.enable = p.enable_hr and (self.enable_hr_seed or self.update_progress_bar)
         # if hr_disabled or hr batch count <= 1 and hr seed is disabled then module is disabled
@@ -183,7 +189,19 @@ class HiresBatchSeed:
         p.sample = self.sample_hijack(p, p.sample)
 
     def before_process_batch(self, p, *args, **kwargs):
-        if not (self.enable and self.update_progress_bar):
+        if not self.enable:
+            return
+
+        if self.patch_get_hr_prompt:
+            # fix for 1.9
+            if self.original_get_hr_prompt:
+                p.extra_generation_params['Hires prompt'] = self.original_get_hr_prompt
+                self.original_get_hr_prompt = None
+            if self.original_get_hr_negative_prompt:
+                p.extra_generation_params['Hires negative prompt'] = self.original_get_hr_negative_prompt
+                self.original_get_hr_negative_prompt = None
+
+        if not self.update_progress_bar:
             return
         self.update_progress_bar = False
         # known issue: progress may break when using scripts like xyz grid
@@ -296,6 +314,15 @@ class HiresBatchSeed:
                         sd_models.reload_model_weights(info=p.hr_checkpoint_info)
                         p.setup_conds()
 
+                if self.patch_get_hr_prompt:
+                    # fix for 1.9
+                    if callable(get_hr_prompt := p.extra_generation_params.get('Hires prompt')):
+                        self.original_get_hr_prompt = get_hr_prompt
+                        p.extra_generation_params['Hires prompt'] = self.get_hr_prompt_hijack(get_hr_prompt)
+                    if callable(get_hr_negative_prompt := p.extra_generation_params.get('Hires negative prompt')):
+                        self.original_get_hr_negative_prompt = get_hr_negative_prompt
+                        p.extra_generation_params['Hires negative prompt'] = self.get_hr_prompt_hijack(get_hr_negative_prompt)
+
             finally:
                 p.seeds = self.first_pass_seeds
                 p.subseeds = self.first_pass_subseeds
@@ -331,4 +358,20 @@ class HiresBatchSeed:
             result = resize_image(*args, **kwargs)
             self.resize_image_cache.append((bind_args_items, im, result))
             return result
+        return wrapped_function
+
+    def get_hr_prompt_hijack(self, get_hr_prompt):
+        # fix for 1.9
+        get_hr_prompt_signature = inspect.signature(get_hr_prompt)
+
+        def wrapped_function(*args, **kwargs):
+            if not self.enable:
+                return get_hr_prompt(*args, **kwargs)
+            try:
+                bind_args = get_hr_prompt_signature.bind(*args, **kwargs).arguments
+                bind_args['index'] = bind_args['index'] // self.hr_batch_count
+                return get_hr_prompt(**bind_args)
+            except Exception:
+                return get_hr_prompt(*args, **kwargs)
+
         return wrapped_function
