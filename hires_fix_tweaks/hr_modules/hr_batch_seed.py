@@ -1,10 +1,9 @@
 from modules import errors, patches, processing, shared, script_callbacks, images, sd_models
+from hires_fix_tweaks.utils import quote_swap, dumps_quote_swap_json, loads_quote_swap_json
 from PIL import ImageChops
 import inspect
 import random
 import json
-
-quote_swap = str.maketrans('\'"', '"\'')
 
 
 def same_img_pil(img1, img2):
@@ -64,7 +63,7 @@ def create_infotext_hijack(create_infotext, script_class):
                         hr_seed_info['Resize'] = [hires_batch_seed.hr_seed_resize_from_w, hires_batch_seed.hr_seed_resize_from_h]
 
                     # store hr_seed_info as json string with double and single quotes swapped
-                    p.extra_generation_params['Hires seed'] = json.dumps(hr_seed_info).translate(quote_swap)
+                    p.extra_generation_params['Hires seed'] = dumps_quote_swap_json(hr_seed_info)
                 else:
                     assert False
 
@@ -96,7 +95,7 @@ def hijack_create_infotext(script_class):
 
 def parse_infotext(infotext, params):
     try:
-        params['Hires seed'] = json.loads(params['Hires seed'].translate(quote_swap))
+        params['Hires seed'] = loads_quote_swap_json(params['Hires seed'])
     except Exception:
         pass
 
