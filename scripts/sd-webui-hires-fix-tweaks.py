@@ -58,4 +58,5 @@ class HiresFixTweaks(scripts.Script):
 
 hr_batch_seed.hijack_create_infotext(HiresFixTweaks)
 script_callbacks.on_infotext_pasted(hr_batch_seed.parse_infotext)
+script_callbacks.on_infotext_pasted(hr_prompt_mode.parse_infotext)
 script_callbacks.on_before_ui(xyz.xyz_grid_axis)

@@ -7,16 +7,30 @@ shared.options_templates.update(
     shared.options_section(
         ('hires_fix_tweaks', 'Hires. fix tweaks'),
         {
+            'hires_fix_tweaks_save_template':
+                shared.OptionInfo(
+                    False,
+                    'Save the hires prompt mode template to infotext',
+                )
+                .needs_reload_ui(),
+            'hires_fix_tweaks_restore_template':
+                shared.OptionInfo(
+                    False,
+                    'Restore hires prompt mode template from infotext',
+                )
+                .needs_reload_ui(),
             'hires_fix_tweaks_append_separator':
                 shared.OptionInfo(
                     '{newline}',
                     'Append mode insert separator',
+                    infotext='HR Append',
                 )
                 .info('default: "{newline}"'),
             'hires_fix_tweaks_prepend_separator':
                 shared.OptionInfo(
                     '{newline}',
                     'Prepend mode insert separator',
+                    infotext='HR Prepend',
                 )
                 .info('default: "{newline}"'),
             'hires_fix_tweaks_show_hr_cfg':
@@ -50,6 +64,7 @@ shared.options_templates.update(
                     'Hires fix search/replace syntax '
                     'marker character',
                     onchange=hr_prompt_mode.setup_regex,
+                    infotext='HR marker',
                 )
                 .info('default: "@", can be changed other characters if the default is causing issues, must be a single uncommon character'),
             'hires_fix_tweaks_hires_prompt_mode_ui_type':

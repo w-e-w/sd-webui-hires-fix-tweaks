@@ -1,3 +1,4 @@
+from hires_fix_tweaks.utils import dumps_quote_swap_json, loads_quote_swap_json
 from modules import extra_networks
 from modules import shared
 import gradio as gr
@@ -114,29 +115,175 @@ def get_prompt(prompt_obj, index):
     return prompt_obj[index] if isinstance(prompt_obj, list) else prompt_obj
 
 
-def setup(p, *args):
-    remove_fp_extra_networks, hires_prompt_mode, hires_negative_prompt_mode = args[1:4]
+class FakeP:
+    def __init__(self, prompt, negative_prompt, hr_prompt, hr_negative_prompt):
+        self.prompt = '' if prompt is None else prompt.strip()
+        self.negative_prompt = '' if negative_prompt is None else negative_prompt.strip()
+        self.hr_prompt = '' if hr_prompt is None else hr_prompt.strip()
+        self.hr_negative_prompt = '' if hr_negative_prompt is None else hr_negative_prompt.strip()
 
+    def compare(self, other, p, np):
+        positive = p and all(getattr(self, attr).strip() == getattr(other, attr).strip() for attr in ['prompt', 'hr_prompt'])
+        negative = np and all(getattr(self, attr).strip() == getattr(other, attr).strip() for attr in ['negative_prompt', 'hr_negative_prompt'])
+        return positive, negative
+
+
+def get_mode_info(mode, hr_prompt, negative, remove_fp_extra_networks=False):
+    """
+    {
+        'h': [mode, hr_prompt, remove_fp_extra_networks],
+        'n': [mode, hr_prompt],
+        'a': append_separator,
+        'p': prepend_separator,
+        'c': marker_char,
+    }
+    """
+    if shared.opts.hires_fix_tweaks_save_template:
+        prompt_mode = [mode, hr_prompt.strip()]
+        if remove_fp_extra_networks:
+            prompt_mode.append(remove_fp_extra_networks)
+        info_obj = {'n' if negative else 'h': prompt_mode}
+        if mode == 'Append' and shared.opts.hires_fix_tweaks_append_separator != shared.opts.get_default('hires_fix_tweaks_append_separator'):
+            info_obj['a'] = shared.opts.hires_fix_tweaks_append_separator
+        elif mode == 'Prepend' and shared.opts.hires_fix_tweaks_prepend_separator != shared.opts.get_default('hires_fix_tweaks_prepend_separator'):
+            info_obj['p'] = shared.opts.hires_fix_tweaks_prepend_separator
+        elif mode == 'Prompt S/R' and shared.opts.hires_fix_tweaks_marker_char != shared.opts.get_default('hires_fix_tweaks_marker_char'):
+            info_obj['c'] = shared.opts.hires_fix_tweaks_marker_char
+        return info_obj
+
+
+def merge_mode_info(info_obj_1, info_obj_2):
+    if info_obj_1 and info_obj_2:
+        match (isinstance(info_obj_1, dict), isinstance(info_obj_2, dict)):
+            case True, True:
+                info_obj_1.update(info_obj_2)
+                return info_obj_1
+            case False, False:
+                assert len(info_obj_1) == len(info_obj_2)
+                info_obj = []
+                for o1, o2 in zip(info_obj_1, info_obj_2):
+                    o1.update(o2)
+                    info_obj.append(o1)
+                return info_obj
+            case False, True:
+                [o.update(info_obj_2) for o in info_obj_1]
+                return info_obj_1
+            case True, False:
+                [o.update(info_obj_2) for o in info_obj_2]
+                return info_obj_2
+    elif info_obj_1:
+        return info_obj_1
+    elif info_obj_2:
+        return info_obj_2
+
+
+def parse_mode_info(mode_info):
+    info_obj = loads_quote_swap_json(mode_info)
+    h = info_obj.get('h', [None, None, None])
+    mode_p, hr_prompt, remove_fp_extra_networks = h if len(h) == 3 else (h + [False])
+    mode_np, hr_np_prompt = info_obj.get('n', [None, None])
+    app_sep = info_obj.get('a', shared.opts.get_default('hires_fix_tweaks_append_separator'))
+    pre_sep = info_obj.get('p', shared.opts.get_default('hires_fix_tweaks_prepend_separator'))
+    marker_char = info_obj.get('c', shared.opts.get_default('hires_fix_tweaks_marker_char'))
+    return mode_p, hr_prompt, mode_np, hr_np_prompt, app_sep, pre_sep, marker_char, remove_fp_extra_networks
+
+
+def parse_and_apply_mode_info(mode_info, params):
+    mode_p, hr_prompt, mode_np, hr_np_prompt, app_sep, pre_sep, marker_char, remove_fp_extra_networks = parse_mode_info(mode_info)
+
+    if 'HR Append' not in params:
+        params['HR Append'] = app_sep
+        shared.opts.set('hires_fix_tweaks_append_separator', app_sep)
+
+    if 'HR Prepend' not in params:
+        params['HR Prepend'] = pre_sep
+        shared.opts.set('hires_fix_tweaks_prepend_separator', pre_sep)
+
+    if 'HR marker' not in params:
+        params['HR marker'] = marker_char
+        shared.opts.set('hires_fix_tweaks_marker_char', marker_char)
+
+    return mode_p, hr_prompt, mode_np, hr_np_prompt, remove_fp_extra_networks
+
+
+def process_prompt_mode(hires_prompt_mode, p, negative=False, remove_fp_extra_networks=False):
+    info_obj = None
     if remove_fp_extra_networks or hires_prompt_mode != 'Default':
+        p_prompt, p_hr_prompt = (p.negative_prompt, p.hr_negative_prompt) if negative else (p.prompt, p.hr_prompt)
+
         hires_prompt_mode_function = hires_prompt_mode_functions.get(hires_prompt_mode, hires_prompt_mode_default)
-        if any(isinstance(var, list) for var in [p.prompt, p.hr_prompt]):
-            prompt_list, hr_prompt_list = [], []
-            for i in range(len(p.prompt if isinstance(p.prompt, list) else p.hr_prompt)):
-                prompt, hr_prompt = hires_prompt_mode_function(get_prompt(p.prompt, i), get_prompt(p.hr_prompt, i), args[1])
+
+        if any(isinstance(var, list) for var in [p_prompt, p_hr_prompt]):
+            prompt_list, hr_prompt_list, info_obj = [], [], []
+            for i in range(len(p_prompt if isinstance(p_prompt, list) else p_hr_prompt)):
+                prompt, hr_prompt = hires_prompt_mode_function(get_prompt(p_prompt, i), get_prompt(p_hr_prompt, i), remove_fp_extra_networks)
                 prompt_list.append(prompt)
                 hr_prompt_list.append(hr_prompt)
-            p.prompt, p.hr_prompt = prompt_list, hr_prompt_list
-        else:
-            p.prompt, p.hr_prompt = hires_prompt_mode_function(p.prompt, p.hr_prompt, args[1])
+                info_obj.append(get_mode_info(hires_prompt_mode, get_prompt(p_hr_prompt, i), negative, remove_fp_extra_networks))
 
-    if hires_negative_prompt_mode != 'Default':
-        hires_prompt_mode_function = hires_prompt_mode_functions.get(hires_negative_prompt_mode, hires_prompt_mode_default)
-        if any(isinstance(var, list) for var in [p.negative_prompt, p.hr_negative_prompt]):
-            negative_prompt_list, hr_negative_prompt_list = [], []
-            for i in range(len(p.negative_prompt if isinstance(p.negative_prompt, list) else p.hr_negative_prompt)):
-                negative_prompt, hr_negative_prompt = hires_prompt_mode_function(get_prompt(p.negative_prompt, i), get_prompt(p.hr_negative_prompt, i))
-                negative_prompt_list.append(negative_prompt)
-                hr_negative_prompt_list.append(hr_negative_prompt)
-            p.negative_prompt, p.hr_negative_prompt = negative_prompt_list, hr_negative_prompt_list
+            if negative:
+                p.negative_prompt, p.hr_negative_prompt = prompt_list, hr_prompt_list
+            else:
+                p.prompt, p.hr_prompt = prompt_list, hr_prompt_list
+
         else:
-            p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_function(p.negative_prompt, p.hr_negative_prompt)
+            info_obj = get_mode_info(hires_prompt_mode, p_hr_prompt, negative, remove_fp_extra_networks)
+            if negative:
+                p.negative_prompt, p.hr_negative_prompt = hires_prompt_mode_function(p_prompt, p_hr_prompt, remove_fp_extra_networks)
+            else:
+                p.prompt, p.hr_prompt = hires_prompt_mode_function(p_prompt, p_hr_prompt, remove_fp_extra_networks)
+
+    return info_obj
+
+
+def setup(p, *args):
+    remove_fp_extra_networks, hires_prompt_mode, hires_negative_prompt_mode = args[1:4]
+    info_obj_p = process_prompt_mode(hires_prompt_mode, p, remove_fp_extra_networks=remove_fp_extra_networks)
+    info_obj_np = process_prompt_mode(hires_negative_prompt_mode, p, negative=True)
+    if info_obj := merge_mode_info(info_obj_p, info_obj_np):
+        p.extra_generation_params['Hires prompt mode'] = dumps_quote_swap_json(info_obj)
+
+
+class RestoreSettings:
+    def __enter__(self):
+        keys = ['hires_fix_tweaks_append_separator', 'hires_fix_tweaks_prepend_separator', 'hires_fix_tweaks_marker_char']
+        self.settings = {key: getattr(shared.opts, key) for key in keys}
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for key, value in self.settings.items():
+            shared.opts.set(key, value)
+
+
+def parse_infotext(infotext, params):
+    use_p, use_n = False, False
+    try:
+        if shared.opts.hires_fix_tweaks_restore_template:
+            with RestoreSettings():
+                if 'Hires prompt mode' in params:
+                    mode_p, hr_prompt, mode_np, hr_np_prompt, remove_fp_extra_networks = parse_and_apply_mode_info(params['Hires prompt mode'], params)
+
+                    if mode_p or mode_np:
+                        p_info = FakeP(params['Prompt'], params['Negative prompt'], params['Hires prompt'], params['Hires negative prompt'])
+                        p = FakeP(params['Prompt'], params['Negative prompt'], hr_prompt, hr_np_prompt)
+                        if mode_p:
+                            process_prompt_mode(mode_p, p, remove_fp_extra_networks=remove_fp_extra_networks)
+                        if mode_np:
+                            process_prompt_mode(mode_np, p, negative=True)
+                        use_p, use_n = p.compare(p_info, mode_p, mode_np)
+                        if use_p:
+                            params['Hires prompt mode'] = mode_p
+                            params['Hires prompt'] = hr_prompt
+                            params['Remove FP Networks'] = remove_fp_extra_networks
+                        if use_n:
+                            params['Hires negative prompt mode'] = mode_np
+                            params['Hires negative prompt'] = hr_np_prompt
+
+    except Exception as e:
+        print(e)
+        pass
+
+    if not use_p:
+        params['Hires prompt mode'] = 'Default'
+        params['Remove FP Networks'] = False
+    if not use_n:
+        params['Hires negative prompt mode'] = 'Default'

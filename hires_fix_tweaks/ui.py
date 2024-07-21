@@ -97,15 +97,15 @@ class UI:
             self.remove_fp_extra_networks_e = gr.Checkbox(label='Remove First Pass Extra Networks', value=False, elem_id=self.script.elem_id('remove_fp_extra_networks'), elem_classes=['hr-tweaks-center-checkbox'], tooltip='Remove extra networks from first-pass prompt before constructing hires-prompt', visible=shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks)
             self.hr_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires prompt mode', value='Default', elem_id=self.script.elem_id('hr_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
             self.hr_negative_prompt_mode_e = gr_ui_element(choices=list(hr_prompt_mode.hires_prompt_mode_functions), label='Hires negative prompt mode', value='Default', elem_id=self.script.elem_id('hr_negative_prompt_extend_mode'), elem_classes=['hr-prompt-extend-mode'] if shared.opts.hires_fix_tweaks_show_hr_remove_fp_extra_networks else [], visible=shared.opts.hires_fix_tweaks_show_hr_prompt_mode)
+            self.script.infotext_fields.extend([
+                (self.remove_fp_extra_networks_e, 'Remove FP Networks'),
+                (self.hr_prompt_mode_e, 'Hires prompt mode'),
+                (self.hr_negative_prompt_mode_e, 'Hires negative prompt mode'),
+            ])
         if shared.opts.hires_fix_tweaks_show_hr_prompt_mode and not shared.opts.hires_fix_show_prompts:
             with gr.Row():
                 gr.Markdown('''`Hires prompt mode` is only usable if `Settings` > `UI alternatives` > `Hires fix: show hires prompt and negative prompt` is enabled
 if you do not need this feature you can disable it in `Settings` > `Hires. fix tweaks` > `Show hires Hires prompt mode`''')
-            self.script.infotext_fields.extend([
-                (self.remove_fp_extra_networks_e, False),
-                (self.hr_prompt_mode_e, lambda d: 'Default'),
-                (self.hr_negative_prompt_mode_e, lambda d: 'Default'),
-            ])
         self.create_hr_seed_ui()
         self.create_ui_hr_prompt_mode_done = True
 
