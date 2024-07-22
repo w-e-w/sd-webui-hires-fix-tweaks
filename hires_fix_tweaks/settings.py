@@ -9,13 +9,13 @@ shared.options_templates.update(
         {
             'hires_fix_tweaks_save_template':
                 shared.OptionInfo(
-                    False,
+                    True,
                     'Save the hires prompt mode template to infotext',
                 )
                 .needs_reload_ui(),
             'hires_fix_tweaks_restore_template':
                 shared.OptionInfo(
-                    False,
+                    True,
                     'Restore hires prompt mode template from infotext',
                 )
                 .needs_reload_ui(),
