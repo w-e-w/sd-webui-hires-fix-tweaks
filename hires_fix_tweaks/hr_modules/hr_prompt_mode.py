@@ -184,12 +184,12 @@ def parse_mode_info(mode_info):
     mode_np, hr_np_prompt = info_obj.get('n', [None, None])
     app_sep = info_obj.get('a', shared.opts.get_default('hires_fix_tweaks_append_separator'))
     pre_sep = info_obj.get('p', shared.opts.get_default('hires_fix_tweaks_prepend_separator'))
-    marker_char = info_obj.get('c', shared.opts.get_default('hires_fix_tweaks_marker_char'))
-    return mode_p, hr_prompt, mode_np, hr_np_prompt, app_sep, pre_sep, marker_char, remove_fp_extra_networks
+    marker = info_obj.get('c', shared.opts.get_default('hires_fix_tweaks_marker_char'))
+    return mode_p, hr_prompt, mode_np, hr_np_prompt, app_sep, pre_sep, marker, remove_fp_extra_networks
 
 
 def parse_and_apply_mode_info(mode_info, params):
-    mode_p, hr_prompt, mode_np, hr_np_prompt, app_sep, pre_sep, marker_char, remove_fp_extra_networks = parse_mode_info(mode_info)
+    mode_p, hr_prompt, mode_np, hr_np_prompt, app_sep, pre_sep, marker, remove_fp_extra_networks = parse_mode_info(mode_info)
 
     if 'HR Append' not in params:
         params['HR append'] = app_sep
@@ -200,8 +200,8 @@ def parse_and_apply_mode_info(mode_info, params):
         shared.opts.set('hires_fix_tweaks_prepend_separator', pre_sep)
 
     if 'HR marker' not in params:
-        params['HR marker'] = marker_char
-        shared.opts.set('hires_fix_tweaks_marker_char', marker_char)
+        params['HR marker'] = marker
+        shared.opts.set('hires_fix_tweaks_marker_char', marker)
 
     return mode_p, hr_prompt, mode_np, hr_np_prompt, remove_fp_extra_networks
 
