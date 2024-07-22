@@ -23,14 +23,14 @@ shared.options_templates.update(
                 shared.OptionInfo(
                     '{newline}',
                     'Append mode insert separator',
-                    infotext='HR Append',
+                    infotext='HR append',
                 )
                 .info('default: "{newline}"'),
             'hires_fix_tweaks_prepend_separator':
                 shared.OptionInfo(
                     '{newline}',
                     'Prepend mode insert separator',
-                    infotext='HR Prepend',
+                    infotext='HR prepend',
                 )
                 .info('default: "{newline}"'),
             'hires_fix_tweaks_show_hr_cfg':

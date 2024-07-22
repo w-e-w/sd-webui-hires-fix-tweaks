@@ -192,11 +192,11 @@ def parse_and_apply_mode_info(mode_info, params):
     mode_p, hr_prompt, mode_np, hr_np_prompt, app_sep, pre_sep, marker_char, remove_fp_extra_networks = parse_mode_info(mode_info)
 
     if 'HR Append' not in params:
-        params['HR Append'] = app_sep
+        params['HR append'] = app_sep
         shared.opts.set('hires_fix_tweaks_append_separator', app_sep)
 
     if 'HR Prepend' not in params:
-        params['HR Prepend'] = pre_sep
+        params['HR prepend'] = pre_sep
         shared.opts.set('hires_fix_tweaks_prepend_separator', pre_sep)
 
     if 'HR marker' not in params:
@@ -236,12 +236,20 @@ def process_prompt_mode(hires_prompt_mode, p, negative=False, remove_fp_extra_ne
     return info_obj
 
 
+def apply_override(p):
+    for key in ['hires_fix_tweaks_append_separator', 'hires_fix_tweaks_prepend_separator', 'hires_fix_tweaks_marker_char']:
+        if key in p.override_settings:
+            shared.opts.set(key, p.override_settings[key])
+
+
 def setup(p, *args):
     remove_fp_extra_networks, hires_prompt_mode, hires_negative_prompt_mode = args[1:4]
-    info_obj_p = process_prompt_mode(hires_prompt_mode, p, remove_fp_extra_networks=remove_fp_extra_networks)
-    info_obj_np = process_prompt_mode(hires_negative_prompt_mode, p, negative=True)
-    if info_obj := merge_mode_info(info_obj_p, info_obj_np):
-        p.extra_generation_params['Hires prompt mode'] = dumps_quote_swap_json(info_obj)
+    with RestoreSettings():
+        apply_override(p)
+        info_obj_p = process_prompt_mode(hires_prompt_mode, p, remove_fp_extra_networks=remove_fp_extra_networks)
+        info_obj_np = process_prompt_mode(hires_negative_prompt_mode, p, negative=True)
+        if info_obj := merge_mode_info(info_obj_p, info_obj_np):
+            p.extra_generation_params['Hires prompt mode'] = dumps_quote_swap_json(info_obj)
 
 
 class RestoreSettings:
