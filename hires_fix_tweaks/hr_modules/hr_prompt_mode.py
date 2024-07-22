@@ -239,7 +239,7 @@ def process_prompt_mode(hires_prompt_mode, p, negative=False, remove_fp_extra_ne
 def apply_override(p):
     for key in ['hires_fix_tweaks_append_separator', 'hires_fix_tweaks_prepend_separator', 'hires_fix_tweaks_marker_char']:
         if key in p.override_settings:
-            shared.opts.set(key, p.override_settings[key])
+            shared.opts.set(key, p.override_settings.pop(key))
 
 
 def setup(p, *args):
