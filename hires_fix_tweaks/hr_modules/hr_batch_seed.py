@@ -1,9 +1,8 @@
 from modules import errors, patches, processing, shared, script_callbacks, images, sd_models
-from hires_fix_tweaks.utils import quote_swap, dumps_quote_swap_json, loads_quote_swap_json
+from hires_fix_tweaks.utils import dumps_quote_swap_json, loads_quote_swap_json
 from PIL import ImageChops
 import inspect
 import random
-import json
 
 
 def same_img_pil(img1, img2):

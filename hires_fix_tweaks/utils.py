@@ -1,4 +1,3 @@
-from modules import shared
 import json
 
 quote_swap = str.maketrans('\'"', '"\'')
