@@ -76,6 +76,7 @@ def create_infotext_hijack(create_infotext, script_class):
         finally:
             results = create_infotext(*args, **kwargs)
             return results
+        return create_infotext(*args, **kwargs)
 
     return wrapped_function
 
