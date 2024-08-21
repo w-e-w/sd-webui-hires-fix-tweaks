@@ -1,7 +1,6 @@
-from hires_fix_tweaks.hr_modules import hr_prompt_mode
-from hires_fix_tweaks.hr_modules import hr_batch_seed
+from hires_fix_tweaks.hr_modules import hr_prompt_mode, hr_batch_seed, hr_styles
 from modules import generation_parameters_copypaste  # noqa: generation_parameters_copypaste is the ailes to infotext_utils
-from modules import shared, ui_components, ui
+from modules import shared, ui_components, ui, scripts, ui_prompt_styles
 from contextlib import nullcontext
 import gradio as gr
 import json
@@ -35,6 +34,8 @@ class UI:
         self.script = script
         self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row2', self.create_ui_batch_cfg))
         self.script.on_after_component_elem_id.append(('txt2img_hires_fix_row4', self.create_ui_hr_prompt_mode))
+        self.script.on_after_component_elem_id.append(('hires_prompt', self.store_hires_prompt_ref_reg_apply))
+        self.script.on_after_component_elem_id.append(('hires_neg_prompt', self.store_hires_negative_prompt_ref_reg_apply))
         # ui create status
         self.create_ui_cfg_done = None
         self.create_ui_hr_prompt_mode_done = None
@@ -59,17 +60,26 @@ class UI:
         self.hr_seed_resize_from_h_e = None
         self.hr_seed_resize_from_w_e = None
 
+        self.enable_hr_styles_e = None
+        self.hr_styles_e = None
+
+        # reference to hires fix prompt and negative prompt input box created by the WebUI
+        self.hires_prompt_e = None
+        self.hires_negative_prompt_e = None
+
+        self.apply_hr_styles_button = None
+
     def ui_args(self):
         return [
-            # hr cfg scale
+            # hr cfg scale 0:1
             self.hr_cfg_e,
 
-            # hr prompt mode
+            # hr prompt mode 1:4
             self.remove_fp_extra_networks_e,
             self.hr_prompt_mode_e,
             self.hr_negative_prompt_mode_e,
 
-            # hr batch and seed
+            # hr batch and seed 4:12
             self.hr_batch_count_e,
             self.enable_hr_seed_e,
             self.hr_seed_e,
@@ -78,6 +88,10 @@ class UI:
             self.hr_subseed_strength_e,
             self.hr_seed_resize_from_w_e,
             self.hr_seed_resize_from_h_e,
+
+            # hr styles 12:14
+            self.enable_hr_styles_e,
+            self.hr_styles_e,
         ]
 
     def fallback_create_ui(self):
@@ -123,62 +137,118 @@ if you do not need this feature you can disable it in `Settings` > `Hires. fix t
     def create_hr_seed_ui(self, *args, **kwargs):
         if self.create_hr_seed_ui_done:
             return
-        with (
-            ui_components.InputAccordion(False, label="Hires Seed", elem_id=self.script.elem_id('custom_seed'), visible=shared.opts.hires_fix_tweaks_show_hr_batch_seed) if InputAccordion
-            else gr.Accordion('Hires Seed', open=False, elem_id=self.script.elem_id('custom_seed'))
-            as self.enable_hr_seed_e
-        ):
-            with gr.Row(elem_id=self.script.elem_id("seed_row")):
-                if not InputAccordion:
-                    # pre 1.7.0 compatibility
-                    self.enable_hr_seed_e = gr.Checkbox(label='Enable', elem_id=self.script.elem_id("enable_hr_seed_subseed_show"), value=False)
-                    # the elem_id suffix is used _subseed_show to apply the [id$=_subseed_show] css rule
-                if shared.cmd_opts.use_textbox_seed:
-                    self.hr_seed_e = gr.Textbox(label='Hires Seed', value='0', elem_id=self.script.elem_id("seed"))
-                else:
-                    self.hr_seed_e = gr.Number(label='Hires Seed', value=0, elem_id=self.script.elem_id("seed"), precision=0)
 
-                same_seed = ui_components.ToolButton('🟰', elem_id=self.script.elem_id("same_seed"), tooltip="Set seed to 0, use same seed as the first pass")
-                random_seed = ui_components.ToolButton(ui.random_symbol, elem_id=self.script.elem_id("random_seed"), tooltip="Set seed to -1, which will cause a new random number to be used every time")
-                reuse_seed = ui_components.ToolButton(ui.reuse_symbol, elem_id=self.script.elem_id("reuse_seed"), tooltip="Reuse seed from last generation, mostly useful if it was randomized")
+        with gr.Row(elem_classes='accordions'):
+            self.create_hr_styles()
 
-                self.hr_seed_checkbox_e = gr.Checkbox(label='Extra', elem_id=self.script.elem_id("subseed_show"), value=False)
-
-            with gr.Group(visible=False, elem_id=self.script.elem_id("seed_extras")) as seed_extras:
-                with gr.Row(elem_id=self.script.elem_id("subseed_row")):
+            with (
+                ui_components.InputAccordion(False, label="Hires Seed", elem_id=self.script.elem_id('custom_seed'), visible=shared.opts.hires_fix_tweaks_show_hr_batch_seed) if InputAccordion
+                else gr.Accordion('Hires Seed', open=False, elem_id=self.script.elem_id('custom_seed'))
+                as self.enable_hr_seed_e
+            ):
+                with gr.Row(elem_id=self.script.elem_id("seed_row")):
+                    if not InputAccordion:
+                        # pre 1.7.0 compatibility
+                        self.enable_hr_seed_e = gr.Checkbox(label='Enable', elem_id=self.script.elem_id("enable_hr_seed_subseed_show"), value=False)
+                        # the elem_id suffix is used _subseed_show to apply the [id$=_subseed_show] css rule
                     if shared.cmd_opts.use_textbox_seed:
-                        self.hr_subseed_e = gr.Textbox(label='Hires variation seed', value='0', elem_id=self.script.elem_id("subseed"))
+                        self.hr_seed_e = gr.Textbox(label='Hires Seed', value='0', elem_id=self.script.elem_id("seed"))
                     else:
-                        self.hr_subseed_e = gr.Number(label='Hires variation seed', value=0, elem_id=self.script.elem_id("subseed"), precision=0)
-                    same_seed_subseed = ui_components.ToolButton('🟰', elem_id=self.script.elem_id("same_seed_subseed"), tooltip="Set seed to 0, use same seed as the first pass")
-                    random_subseed = ui_components.ToolButton(ui.random_symbol, elem_id=self.script.elem_id("random_subseed"), tooltip="Set seed to -1, which will cause a new random number to be used every time")
-                    reuse_subseed = ui_components.ToolButton(ui.reuse_symbol, elem_id=self.script.elem_id("reuse_subseed"), tooltip="Reuse seed from last generation, mostly useful if it was randomized")
-                    self.hr_subseed_strength_e = gr.Slider(label='Hires variation strength', value=0.0, minimum=0, maximum=1, step=0.01, elem_id=self.script.elem_id("hr_subseed_strength"))
+                        self.hr_seed_e = gr.Number(label='Hires Seed', value=0, elem_id=self.script.elem_id("seed"), precision=0)
 
-                with gr.Row(elem_id=self.script.elem_id("seed_resize_from_row")):
-                    self.hr_seed_resize_from_w_e = gr.Slider(minimum=0, maximum=2048, step=8, label="Hires resize seed from width", value=0, elem_id=self.script.elem_id("seed_resize_from_w"))
-                    self.hr_seed_resize_from_h_e = gr.Slider(minimum=0, maximum=2048, step=8, label="Hires resize seed from height", value=0, elem_id=self.script.elem_id("seed_resize_from_h"))
+                    same_seed = ui_components.ToolButton('🟰', elem_id=self.script.elem_id("same_seed"), tooltip="Set seed to 0, use same seed as the first pass")
+                    random_seed = ui_components.ToolButton(ui.random_symbol, elem_id=self.script.elem_id("random_seed"), tooltip="Set seed to -1, which will cause a new random number to be used every time")
+                    reuse_seed = ui_components.ToolButton(ui.reuse_symbol, elem_id=self.script.elem_id("reuse_seed"), tooltip="Reuse seed from last generation, mostly useful if it was randomized")
 
-            same_seed.click(fn=None, _js="function(){setInputToValueHrTweaks('" + self.script.elem_id("seed") + "', '0')}", show_progress=False)
-            same_seed_subseed.click(fn=None, _js="function(){setInputToValueHrTweaks('" + self.script.elem_id("subseed") + "', '0')}", show_progress=False)
-            random_seed.click(fn=None, _js="function(){setRandomSeed('" + self.script.elem_id("seed") + "')}", show_progress=False)
-            random_subseed.click(fn=None, _js="function(){setRandomSeed('" + self.script.elem_id("subseed") + "')}", show_progress=False)
+                    self.hr_seed_checkbox_e = gr.Checkbox(label='Extra', elem_id=self.script.elem_id("subseed_show"), value=False)
 
-            self.hr_seed_checkbox_e.change(lambda x: gr.update(visible=x), show_progress=False, inputs=[self.hr_seed_checkbox_e], outputs=[seed_extras])
+                with gr.Group(visible=False, elem_id=self.script.elem_id("seed_extras")) as seed_extras:
+                    with gr.Row(elem_id=self.script.elem_id("subseed_row")):
+                        if shared.cmd_opts.use_textbox_seed:
+                            self.hr_subseed_e = gr.Textbox(label='Hires variation seed', value='0', elem_id=self.script.elem_id("subseed"))
+                        else:
+                            self.hr_subseed_e = gr.Number(label='Hires variation seed', value=0, elem_id=self.script.elem_id("subseed"), precision=0)
+                        same_seed_subseed = ui_components.ToolButton('🟰', elem_id=self.script.elem_id("same_seed_subseed"), tooltip="Set seed to 0, use same seed as the first pass")
+                        random_subseed = ui_components.ToolButton(ui.random_symbol, elem_id=self.script.elem_id("random_subseed"), tooltip="Set seed to -1, which will cause a new random number to be used every time")
+                        reuse_subseed = ui_components.ToolButton(ui.reuse_symbol, elem_id=self.script.elem_id("reuse_subseed"), tooltip="Reuse seed from last generation, mostly useful if it was randomized")
+                        self.hr_subseed_strength_e = gr.Slider(label='Hires variation strength', value=0.0, minimum=0, maximum=1, step=0.01, elem_id=self.script.elem_id("hr_subseed_strength"))
 
-            self.script.infotext_fields.extend(
-                [
-                    (self.enable_hr_seed_e, lambda d: 'Hires seed' in d),
-                    (self.hr_seed_e, lambda d: d.get('Hires seed', {}).get('Seed', 0)),
-                    (self.hr_seed_checkbox_e, lambda d: any(map(d.get('Hires seed', {}).__contains__, ['Strength', 'Resize']))),
-                    (self.hr_subseed_e, lambda d: d.get('Hires seed', {}).get('Subseed', 0)),
-                    (self.hr_subseed_strength_e, lambda d: d.get('Hires seed', {}).get('Strength', 0)),
-                    (self.hr_seed_resize_from_w_e, lambda d: d.get('Hires seed', {}).get('Resize', [0, None])[0]),
-                    (self.hr_seed_resize_from_h_e, lambda d: d.get('Hires seed', {}).get('Resize', [None, 0])[1]),
-                ]
-            )
+                    with gr.Row(elem_id=self.script.elem_id("seed_resize_from_row")):
+                        self.hr_seed_resize_from_w_e = gr.Slider(minimum=0, maximum=2048, step=8, label="Hires resize seed from width", value=0, elem_id=self.script.elem_id("seed_resize_from_w"))
+                        self.hr_seed_resize_from_h_e = gr.Slider(minimum=0, maximum=2048, step=8, label="Hires resize seed from height", value=0, elem_id=self.script.elem_id("seed_resize_from_h"))
 
-            self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_seed_e, reuse_seed, x.component, False), elem_id=f'generation_info_{self.script.tabname}')
-            self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_subseed_e, reuse_subseed, x.component, True), elem_id=f'generation_info_{self.script.tabname}')
+                same_seed.click(fn=None, _js="function(){setInputToValueHrTweaks('" + self.script.elem_id("seed") + "', '0')}", show_progress=False)
+                same_seed_subseed.click(fn=None, _js="function(){setInputToValueHrTweaks('" + self.script.elem_id("subseed") + "', '0')}", show_progress=False)
+                random_seed.click(fn=None, _js="function(){setRandomSeed('" + self.script.elem_id("seed") + "')}", show_progress=False)
+                random_subseed.click(fn=None, _js="function(){setRandomSeed('" + self.script.elem_id("subseed") + "')}", show_progress=False)
+
+                self.hr_seed_checkbox_e.change(lambda x: gr.update(visible=x), show_progress=False, inputs=[self.hr_seed_checkbox_e], outputs=[seed_extras])
+
+                self.script.infotext_fields.extend(
+                    [
+                        (self.enable_hr_seed_e, lambda d: 'Hires seed' in d),
+                        (self.hr_seed_e, lambda d: d.get('Hires seed', {}).get('Seed', 0)),
+                        (self.hr_seed_checkbox_e, lambda d: any(map(d.get('Hires seed', {}).__contains__, ['Strength', 'Resize']))),
+                        (self.hr_subseed_e, lambda d: d.get('Hires seed', {}).get('Subseed', 0)),
+                        (self.hr_subseed_strength_e, lambda d: d.get('Hires seed', {}).get('Strength', 0)),
+                        (self.hr_seed_resize_from_w_e, lambda d: d.get('Hires seed', {}).get('Resize', [0, None])[0]),
+                        (self.hr_seed_resize_from_h_e, lambda d: d.get('Hires seed', {}).get('Resize', [None, 0])[1]),
+                    ]
+                )
+
+                self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_seed_e, reuse_seed, x.component, False), elem_id=f'generation_info_{self.script.tabname}')
+                self.script.on_after_component(lambda x: connect_reuse_seed(self.hr_subseed_e, reuse_subseed, x.component, True), elem_id=f'generation_info_{self.script.tabname}')
 
         self.create_hr_seed_ui_done = True
+
+    def store_hires_prompt_ref_reg_apply(self, on_component: scripts.OnComponent, *args, **kwargs):
+        self.hires_prompt_e = on_component.component
+        self.register_apply_hr_styles()
+
+    def store_hires_negative_prompt_ref_reg_apply(self, on_component: scripts.OnComponent, *args, **kwargs):
+        self.hires_negative_prompt_e = on_component.component
+        self.register_apply_hr_styles()
+
+    def register_apply_hr_styles(self):
+        if all((self.hires_prompt_e, self.hires_negative_prompt_e, self.apply_hr_styles_button)):
+            self.apply_hr_styles_button.click(
+                    fn=ui_prompt_styles.materialize_styles,
+                    inputs=[self.hires_prompt_e, self.hires_negative_prompt_e, self.hr_styles_e],
+                    outputs=[self.hires_prompt_e, self.hires_negative_prompt_e, self.hr_styles_e],
+                    show_progress=False,
+            )
+
+    def create_hr_styles(self):
+        visible = shared.opts.hires_fix_tweaks_show_hr_styles and hr_styles.enable_hr_styles_module
+
+        with (
+            ui_components.InputAccordion(False, label="Hires Styles", elem_id=self.script.elem_id('hr_styles_acc'), visible=visible) if InputAccordion
+            else gr.Accordion('Hires Seed', open=False, elem_id=self.script.elem_id('hr_styles_acc'), visible=visible)
+            as self.enable_hr_styles_e
+        ):
+            with gr.Row():
+                if not InputAccordion:
+                    # pre 1.7.0 compatibility
+                    self.enable_hr_styles_e = gr.Checkbox(label='Enable', elem_id=self.script.elem_id("enable_hr_styles"), value=False)
+                self.hr_styles_e = gr.Dropdown(label='Hr styles choices', choices=list(shared.prompt_styles.styles), value=[], elem_id=self.script.elem_id('hr_styles'), multiselect=True, show_label=False)
+                self.apply_hr_styles_button = ui_components.ToolButton(
+                    value=ui_prompt_styles.styles_materialize_symbol,
+                    elem_id=self.script.elem_id('apply_hr_styles'),
+                    tooltip="Apply all selected hires styles from the style selection dropdown to the hires prompt input.",
+                )
+                self.register_apply_hr_styles()
+
+                refresh_button = ui_components.ToolButton(
+                    value=ui.refresh_symbol,
+                    elem_id=self.script.elem_id('hr_styles_refresh'),
+                    tooltip='Refresh'
+                )
+
+                def refresh_hr_styles():
+                    return gr.update(choices=list(shared.prompt_styles.styles))
+                refresh_button.click(fn=refresh_hr_styles, inputs=[], outputs=[self.hr_styles_e])
+        if hr_styles.enable_hr_styles_module:
+            self.script.infotext_fields.extend([
+                    (self.enable_hr_styles_e, lambda d: 'Hr styles' in d),
+                    (self.hr_styles_e, lambda d: d.get('Hires styles array', None)),
+            ])

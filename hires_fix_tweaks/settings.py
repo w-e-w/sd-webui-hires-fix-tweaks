@@ -58,6 +58,13 @@ shared.options_templates.update(
                 )
                 .info('only usable if "Hires fix: show hires prompt and negative prompt" is also enabled')
                 .needs_reload_ui(),
+            'hires_fix_tweaks_show_hr_styles':
+                shared.OptionInfo(
+                    True,
+                    'Show hires styles',
+                )
+                .info('Available for Webui >= 1.9.0')
+                .needs_reload_ui(),
             'hires_fix_tweaks_marker_char':
                 shared.OptionInfo(
                     '@',
