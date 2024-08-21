@@ -1,6 +1,5 @@
 from hires_fix_tweaks.utils import dumps_quote_swap_json, loads_quote_swap_json
-from modules import extra_networks
-from modules import shared
+from modules import extra_networks, shared
 import gradio as gr
 import re
 
