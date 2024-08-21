@@ -1,4 +1,4 @@
-from hires_fix_tweaks.hr_modules import hr_cfg_scale, hr_prompt_mode, hr_batch_seed, hr_output_dir
+from hires_fix_tweaks.hr_modules import hr_cfg_scale, hr_prompt_mode, hr_batch_seed, hr_output_dir, hr_styles
 from hires_fix_tweaks import ui, xyz, settings  # noqa: F401
 from modules import scripts, script_callbacks
 
@@ -29,6 +29,7 @@ class HiresFixTweaks(scripts.Script):
         hr_prompt_mode.setup(p, *args)
         self.hires_cfg_scale.setup(p, *args)
         self.hires_batch_seed.setup(p, *args)
+        hr_styles.setup(p, *args)
 
     def process(self, p, *args):
         self.hires_batch_seed.process(p, *args)
@@ -58,5 +59,8 @@ class HiresFixTweaks(scripts.Script):
 
 hr_batch_seed.hijack_create_infotext(HiresFixTweaks)
 script_callbacks.on_infotext_pasted(hr_batch_seed.parse_infotext)
+if hr_styles.enable_hr_styles_module:
+    hr_styles.patch_setup_prompts()
+    script_callbacks.on_infotext_pasted(hr_styles.parse_infotext)
 script_callbacks.on_infotext_pasted(hr_prompt_mode.parse_infotext)
 script_callbacks.on_before_ui(xyz.xyz_grid_axis)
