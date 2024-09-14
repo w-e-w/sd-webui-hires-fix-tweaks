@@ -1,5 +1,4 @@
 from modules import patches, processing, shared, script_callbacks
-from hires_fix_tweaks import utils
 from functools import wraps
 
 try:
@@ -58,11 +57,15 @@ def wrap_txt2img_setup_prompts(func):
 
 
 def patch_setup_prompts():
-    patches.patch(__name__, processing.StableDiffusionProcessing, 'setup_prompts', wrap_setup_prompts(processing.StableDiffusionProcessing.setup_prompts))
-    patches.patch(__name__, processing.StableDiffusionProcessingTxt2Img, 'setup_prompts', wrap_txt2img_setup_prompts(processing.StableDiffusionProcessingTxt2Img.setup_prompts))
+    try:
+        patches.patch(__name__, processing.StableDiffusionProcessing, 'setup_prompts', wrap_setup_prompts(processing.StableDiffusionProcessing.setup_prompts))
+        patches.patch(__name__, processing.StableDiffusionProcessingTxt2Img, 'setup_prompts', wrap_txt2img_setup_prompts(processing.StableDiffusionProcessingTxt2Img.setup_prompts))
 
-    def undo_patch():
-        patches.undo(__name__, processing.StableDiffusionProcessingTxt2Img, 'setup_prompts')
-        patches.undo(__name__, processing.StableDiffusionProcessing, 'setup_prompts')
+        def undo_patch():
+            patches.undo(__name__, processing.StableDiffusionProcessingTxt2Img, 'setup_prompts')
+            patches.undo(__name__, processing.StableDiffusionProcessing, 'setup_prompts')
 
-    script_callbacks.on_script_unloaded(undo_patch)
+        script_callbacks.on_script_unloaded(undo_patch)
+
+    except RuntimeError:
+        pass
