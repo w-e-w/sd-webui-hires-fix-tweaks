@@ -20,9 +20,23 @@ Add additional options and features to hires fix for [Stable Diffusion web UI](h
    4. `Prompt S/R`: Prompt Search and Replace:<br>replace or insert first pass prompt with hires prompt
    <br><br>
    - `Remove First Pass Extra Networks`: When check will remove extra networks from first pass prompt before creating hires prompt
-4. Hires output directory
+4. Hires styles
+   - Allows you to specify a different styles for hires pass
+     - Enable and with no styles specified will effectively remove styles from hires pass 
+5. Hires output directory
    - Specify a different output directory for hires pass
    - `Settings > Paths for saving > Output directory for hires. fix images`
+6. Override "Checkpoint dropdown: use filenames without paths" for other dropdowns
+   - Control if the `Checkpoint dropdowns` are listed with or without paths
+   - `Settings > UI alternatives > Override "Checkpoint dropdown: use filenames without paths" for other dropdowns`
+   1. `Default`: No change 
+   2. `With paths (Hires fix)`: Hires fix checkpoint dropdown will be shown *with* paths
+   3. `Without paths (Hires fix)`: Hires fix checkpoint dropdown will be shown *without* paths
+   4. `With paths (Global)`: Most checkpoint dropdown will be shown *with* paths
+   5. `Without paths (Global)`: Most checkpoint dropdown will be shown *without* paths
+      - `Global` variant will affect everything\* which can potentially cause issues depending on how the checkpoint value is used
+        - \*Everything using the `modules.sd_models.checkpoint_tiles` to get the checkpoint list, which is used in most places in the webui
+
 
 ## Remove First Pass Extra Networks
 - `Remove First Pass Extra Networks` operates by removing all extra networks in prompt (every thin matching `<xxxx:extra-network-name:weight>`) in the first pass prompt, this means it only works with `LoRA` and `Hypernetworks` and dose not work with `Textual Inversion Embeddings` or if the extra networks are added by later by other means such as `Setting` or `Styles`.
