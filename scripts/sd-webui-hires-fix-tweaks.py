@@ -1,5 +1,5 @@
 from hires_fix_tweaks.hr_modules import hr_cfg_scale, hr_prompt_mode, hr_batch_seed, hr_output_dir, hr_styles
-from hires_fix_tweaks import ui, xyz, settings  # noqa: F401
+from hires_fix_tweaks import ui, xyz, settings, checkpoint_tiles_use_short_override  # noqa: F401
 from modules import scripts, script_callbacks
 
 
@@ -64,3 +64,4 @@ if hr_styles.enable_hr_styles_module:
     script_callbacks.on_infotext_pasted(hr_styles.parse_infotext)
 script_callbacks.on_infotext_pasted(hr_prompt_mode.parse_infotext)
 script_callbacks.on_before_ui(xyz.xyz_grid_axis)
+checkpoint_tiles_use_short_override.patch_checkpoint_tiles()

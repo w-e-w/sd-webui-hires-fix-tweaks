@@ -98,4 +98,20 @@ shared.options_templates.update(
     )
 )
 
+shared.options_templates.update(
+    shared.options_section(
+        ('ui_alternatives', "UI alternatives"),
+        {
+            'hires_fix_tweaks_checkpoint_tiles_short_override':
+                shared.OptionInfo(
+                    'Default',
+                    'Override "Checkpoint dropdown: use filenames without paths" for other dropdowns',
+                    gr.Radio,
+                    {"choices": ['Default', 'With paths (Hires fix)', 'Without paths (Hires fix)', 'With paths (Global)', 'Without paths (Global)']},
+                ).info('Override the internal arguments that controls if the checkpoint are listed with or without paths, "Global" can potentially break things. (require refresh) (hires-fix-tweaks extension)'),
+        }
+    )
+)
+
+
 hr_prompt_mode.setup_regex()
