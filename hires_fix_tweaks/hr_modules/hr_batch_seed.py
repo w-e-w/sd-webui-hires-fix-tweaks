@@ -74,9 +74,7 @@ def create_infotext_hijack(create_infotext, script_class):
             errors.report(f"create infotext hijack failed {__name__}")
 
         finally:
-            results = create_infotext(*args, **kwargs)
-            return results
-        return create_infotext(*args, **kwargs)
+            return create_infotext(*args, **kwargs)
 
     return wrapped_function
 
