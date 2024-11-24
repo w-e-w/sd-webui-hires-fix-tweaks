@@ -312,6 +312,7 @@ class HiresBatchSeed:
                     if index < self.hr_batch_count - 1 and sd_models.model_data.sd_model.sd_model_checkpoint != (p.hr_checkpoint_info or sd_models.select_checkpoint()).filename:
                         sd_models.reload_model_weights(info=p.hr_checkpoint_info)
                         p.setup_conds()
+                        p.calculate_hr_conds()
 
                 if self.patch_get_hr_prompt:
                     # fix for 1.9
