@@ -41,7 +41,10 @@ def patch_checkpoint_tiles():
         patches.patch(__name__, sd_models, "checkpoint_tiles", wrap_checkpoint_tiles(sd_models.checkpoint_tiles))
 
         def undo():
-            patches.undo(__name__, sd_models, "checkpoint_tiles")
+            try:
+                patches.undo(__name__, sd_models, "checkpoint_tiles")
+            except RuntimeError:
+                pass
 
         script_callbacks.on_script_unloaded(undo)
     except RuntimeError:

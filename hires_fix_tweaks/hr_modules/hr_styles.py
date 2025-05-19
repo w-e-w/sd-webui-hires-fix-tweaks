@@ -62,8 +62,14 @@ def patch_setup_prompts():
         patches.patch(__name__, processing.StableDiffusionProcessingTxt2Img, 'setup_prompts', wrap_txt2img_setup_prompts(processing.StableDiffusionProcessingTxt2Img.setup_prompts))
 
         def undo_patch():
-            patches.undo(__name__, processing.StableDiffusionProcessingTxt2Img, 'setup_prompts')
-            patches.undo(__name__, processing.StableDiffusionProcessing, 'setup_prompts')
+            try:
+                patches.undo(__name__, processing.StableDiffusionProcessingTxt2Img, 'setup_prompts')
+            except RuntimeError:
+                pass
+            try:
+                patches.undo(__name__, processing.StableDiffusionProcessing, 'setup_prompts')
+            except RuntimeError:
+                pass
 
         script_callbacks.on_script_unloaded(undo_patch)
 

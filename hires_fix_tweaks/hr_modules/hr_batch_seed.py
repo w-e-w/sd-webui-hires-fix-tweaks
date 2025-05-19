@@ -84,7 +84,10 @@ def hijack_create_infotext(script_class):
         patches.patch(__name__, processing, 'create_infotext', create_infotext_hijack(processing.create_infotext, script_class))
 
         def undo_hijack():
-            patches.undo(__name__, processing, 'create_infotext')
+            try:
+                patches.undo(__name__, processing, 'create_infotext')
+            except RuntimeError:
+                pass
 
         script_callbacks.on_script_unloaded(undo_hijack)
     except RuntimeError:
