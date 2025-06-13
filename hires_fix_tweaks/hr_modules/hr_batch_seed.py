@@ -151,7 +151,7 @@ class HiresBatchSeed:
 
         self.update_progress_bar = self.patch_get_hr_prompt = self.hr_batch_count > 1
 
-        self.enable = p.enable_hr and (self.enable_hr_seed or self.update_progress_bar)
+        self.enable = getattr(p, 'enable_hr', False) and (self.enable_hr_seed or self.update_progress_bar)
         # if hr_disabled or hr batch count <= 1 and hr seed is disabled then module is disabled
         if not self.enable:
             # module is disabled

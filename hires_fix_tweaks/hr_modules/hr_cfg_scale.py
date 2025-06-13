@@ -10,9 +10,10 @@ class HiresCFGScale:
     def process_batch(self, p, *args, **kwargs):
         # p.extra_generation_params
         self.first_pass_cfg_scale = p.cfg_scale
-        self.apply_hr_cfg_scale = p.hr_cfg_scale != 0 and p.hr_cfg_scale != self.first_pass_cfg_scale
+        hr_cfg_scale = getattr(p, 'hr_cfg_scale', 0)
+        self.apply_hr_cfg_scale = hr_cfg_scale != 0 and hr_cfg_scale != self.first_pass_cfg_scale
         if self.apply_hr_cfg_scale:
-            p.extra_generation_params['Hires CFG scale'] = p.hr_cfg_scale
+            p.extra_generation_params['Hires CFG scale'] = hr_cfg_scale
         else:
             p.extra_generation_params.pop('Hires CFG scale', None)
 

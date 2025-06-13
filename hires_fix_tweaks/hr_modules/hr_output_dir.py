@@ -12,7 +12,7 @@ class HiresOutputDir:
         self.job_original_outpath_samples = None
 
         self.enable = (
-                p.enable_hr
+                getattr(p, 'enable_hr', False)
                 and len(shared.opts.hires_fix_tweaks_outdir_hires_fix) > 0
                 and not len(shared.opts.outdir_samples) > 0
         )
